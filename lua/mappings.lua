@@ -22,9 +22,12 @@ vim.keymap.set("n", "s", "<Nop>")
 vim.keymap.set("x", "s", "<Nop>")
 
 map("n", ";", ":", { desc = "CMD enter command mode" })
--- Remap :q to quitall
-vim.api.nvim_set_keymap("n", ":q<Enter>", ":quitall<CR>", { noremap = true, silent = true })
--- map("i", "jk", "<ESC>")
+-- Replace :q → :qa
+vim.cmd [[cnoreabbrev <expr> q  getcmdtype() == ':' && getcmdline() == 'q'  ? 'qa'  : 'q']]
+-- Replace :q! → :qa!
+vim.cmd [[cnoreabbrev <expr> q! getcmdtype() == ':' && getcmdline() == 'q!' ? 'qa!' : 'q!']]
+map("i", "jj", "jj")
+map("i", "jk", "jk")
 
 -- map({ "n", "i", "v" }, "<C-s>", "<cmd> w <cr>")
 
