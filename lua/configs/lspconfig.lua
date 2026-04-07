@@ -119,7 +119,7 @@ vim.lsp.enable "prismals"
 vim.lsp.config("gopls", {
   on_attach = on_attach,
   capabilities = capabilities,
-  root_dir = vim.fs.root(0, { ".git", "go.mod" }),
+  root_markers = { "go.mod", ".git" },
   flags = {
     debounce_text_changes = 150,
   },
@@ -135,8 +135,22 @@ vim.lsp.config("gopls", {
 
 vim.lsp.enable "gopls"
 
+vim.lsp.config("clangd", {
+  on_attach = on_attach,
+  capabilities = capabilities,
+  cmd = {
+    "clangd",
+    "--background-index",
+    "--compile-commands-dir=.",
+    "--query-driver=/Users/ace/.platformio/packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-*",
+  },
+  root_markers = { "compile_commands.json", "platformio.ini", ".git" },
+})
+
+vim.lsp.enable "clangd"
+
 -- Use vim.lsp.enable for servers that can use the default configuration
-local servers = { "html", "cssls", "clangd", "dockerls", "docker_compose_language_service" }
+local servers = { "html", "cssls", "dockerls", "docker_compose_language_service" }
 for _, lsp in ipairs(servers) do
   vim.lsp.enable(lsp)
 end
@@ -154,3 +168,47 @@ vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
     vim.bo.filetype = "jsonc"
   end,
 })
+
+if vim.fn.exists(":LspInfo") == 0 then
+  vim.api.nvim_create_user_command("LspInfo", function()
+    vim.cmd "checkhealth vim.lsp"
+  end, { desc = "Alias to :checkhealth vim.lsp" })
+end
+
+if vim.fn.exists(":LspEnable") == 0 then
+  vim.api.nvim_create_user_command("LspEnable", function(opts)
+    vim.cmd("lsp enable " .. opts.args)
+  end, {
+    nargs = "?",
+    complete = function(_, _, _)
+      return vim.tbl_keys(vim.lsp.config)
+    end,
+    desc = "Alias to :lsp enable",
+  })
+end
+
+if vim.fn.exists(":LspDisable") == 0 then
+  vim.api.nvim_create_user_command("LspDisable", function(opts)
+    vim.cmd("lsp disable " .. opts.args)
+  end, {
+    nargs = "?",
+    complete = function(_, _, _)
+      return vim.tbl_keys(vim.lsp.config)
+    end,
+    desc = "Alias to :lsp disable",
+  })
+end
+
+if vim.fn.exists(":LspRestart") == 0 then
+  vim.api.nvim_create_user_command("LspRestart", function(opts)
+    local suffix = opts.bang and "!" or ""
+    vim.cmd("lsp restart" .. suffix .. " " .. opts.args)
+  end, {
+    nargs = "?",
+    bang = true,
+    complete = function(_, _, _)
+      return vim.tbl_keys(vim.lsp.config)
+    end,
+    desc = "Alias to :lsp restart",
+  })
+end

@@ -32,15 +32,17 @@ map("i", "jk", "jk")
 -- map({ "n", "i", "v" }, "<C-s>", "<cmd> w <cr>")
 
 -- Comment.nvim blockwise toggle
-map("n", "<leader>/", function()
-  require("Comment.api").toggle.blockwise.current()
-end, { desc = "Toggle blockwise comment" })
+map("n", "<leader>/", "gcc", { remap = true, desc = "Toggle comment" })
+map("v", "<leader>/", "gc", { remap = true, desc = "Toggle comment" })
+--[[ map("n", "<leader>/", function()
+  require("Comment.api").toggle.current.linewise()
+end, { desc = "Smart comment toggle" })
 
 map("v", "<leader>/", function()
   local esc = vim.api.nvim_replace_termcodes("<ESC>", true, false, true)
   vim.api.nvim_feedkeys(esc, "nx", false)
-  require("Comment.api").toggle.blockwise(vim.fn.visualmode())
-end, { desc = "Toggle blockwise comment (visual)" })
+  require("Comment.api").toggle.linewise(vim.fn.visualmode())
+end, { desc = "Smart comment toggle (visual)" }) ]]
 
 -- nvimtree
 map("n", "<leader>e", "<cmd> NvimTreeFocus<CR>", { desc = "Focus nvimtree" })
