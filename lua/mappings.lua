@@ -138,11 +138,6 @@ map({ "n", "t" }, "<A-i>", function()
   require("nvchad.term").toggle { pos = "float", id = "floatTerm" }
 end, { desc = "Terminal Toggle Floating term" })
 
-map("t", "<ESC>", function()
-  local win = vim.api.nvim_get_current_win()
-  vim.api.nvim_win_close(win, true)
-end, { desc = "Terminal Close term in terminal mode" })
-
 -- custom
 map("n", "<C-d>", "Find Under")
 --[[ map("n", "<leader>fp", "<cmd> :Project<CR>", { desc = "Open Projects" }) ]]
