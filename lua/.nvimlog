@@ -1,0 +1,2 @@
+WRN 2026-04-08T23:28:54.056 c/nvim.331.0 server_start:199: Failed to start server: operation not permitted: /var/folders/lt/nylpq1rx5xxcfgm1h7tcv_sr0000gn/T/nvim.ace/lYdMDc/nvim.3115.0
+WRN 2026-04-08T23:28:54.155 c/nvim.331.0 server_start:199: Failed to start server: operation not permitted: /var/folders/lt/nylpq1rx5xxcfgm1h7tcv_sr0000gn/T/nvim.ace/SUBOEK/nvim.3116.0

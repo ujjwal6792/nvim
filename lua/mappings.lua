@@ -70,7 +70,7 @@ map("n", "<leader>v", function()
     end
   end
   vim.cmd "wincmd l"
-  require("nvchad.term").toggle { pos = "vsp", id = "vtoggleTerm", size = 0.4 }
+  require("nvchad.term").toggle { pos = "vsp", id = "vtoggleTerm" }
 end, { desc = "Terminal New horizontal term" })
 
 map("n", "<leader>h", function()
@@ -90,7 +90,7 @@ map("n", "<leader>h", function()
     end
   end
   vim.cmd "wincmd l"
-  require("nvchad.term").toggle { pos = "sp", id = "htoggleTerm", size = 0.4 }
+  require("nvchad.term").toggle { pos = "sp", id = "htoggleTerm" }
 end, { desc = "Terminal New vertical window" })
 
 -- toggleable
@@ -111,7 +111,7 @@ map({ "n", "t" }, "<A-v>", function()
     end
   end
   vim.cmd "wincmd l"
-  require("nvchad.term").toggle { pos = "vsp", id = "vtoggleTerm", size = 0.4 }
+  require("nvchad.term").toggle { pos = "vsp", id = "vtoggleTerm" }
 end, { desc = "Terminal Toggleable vertical term" })
 
 map({ "n", "t" }, "<A-h>", function()
@@ -131,7 +131,7 @@ map({ "n", "t" }, "<A-h>", function()
     end
   end
   vim.cmd "wincmd l"
-  require("nvchad.term").toggle { pos = "sp", id = "htoggleTerm", size = 0.4 }
+  require("nvchad.term").toggle { pos = "sp", id = "htoggleTerm" }
 end, { desc = "Terminal New horizontal term" })
 
 map({ "n", "t" }, "<A-i>", function()

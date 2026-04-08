@@ -43,19 +43,26 @@ M.ui = { -- hl = highlights
     order = { "treeOffset", "buffers", "tabs", "btns" },
     modules = nil,
   },
-  term = {
-    hl = "Normal:term,WinSeparator:WinSeparator",
-    sizes = { sp = 0.4, vsp = 0.3 },
-    float = {
-      relative = "editor",
-      row = 0.035,
-      col = 0.035,
-      width = 0.9,
-      height = 0.9,
-      border = "single",
-    },
-  },
   lsp = { signature = true },
+}
+
+M.term = {
+  startinsert = true,
+  base46_colors = true,
+  winopts = {
+    number = false,
+    relativenumber = false,
+    winhl = "Normal:term,WinSeparator:WinSeparator",
+  },
+  sizes = { sp = 0.5, vsp = 0.5, ["bo sp"] = 0.5, ["bo vsp"] = 0.5 },
+  float = {
+    relative = "editor",
+    row = 0.035,
+    col = 0.035,
+    width = 0.9,
+    height = 0.9,
+    border = "single",
+  },
 }
 
 return M
