@@ -46,6 +46,30 @@ opt.backspace = "indent,eol,start"
 
 g.mapleader = " "
 g.skip_ts_context_commentstring_module = true
+
+local markdown_notes_group = vim.api.nvim_create_augroup("DefaultEmptyMarkdown", { clear = true })
+
+local function use_markdown_for_empty_buffer(args)
+  local buf = args.buf
+
+  if vim.bo[buf].filetype ~= "" or vim.bo[buf].buftype ~= "" or not vim.bo[buf].modifiable then
+    return
+  end
+
+  if vim.api.nvim_buf_get_name(buf) ~= "" then
+    return
+  end
+
+  if vim.api.nvim_buf_line_count(buf) == 1 and vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1] == "" then
+    vim.bo[buf].filetype = "markdown"
+  end
+end
+
+vim.api.nvim_create_autocmd({ "VimEnter", "BufEnter" }, {
+  group = markdown_notes_group,
+  callback = use_markdown_for_empty_buffer,
+})
+
 -- wsl setup for clipboard
 --[[ vim.g.clipboard = {
   name = "WslClipboard",
