@@ -34,7 +34,7 @@ end
 local function listed_work_buffers()
   local buffers = {}
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-    if is_work_buffer(buf) and vim.api.nvim_buf_is_loaded(buf) then
+    if is_work_buffer(buf) then
       table.insert(buffers, buf)
     end
   end
@@ -56,10 +56,36 @@ local function next_buffer_after(current, buffers)
   return buffers[1]
 end
 
-local function create_work_window()
-  vim.cmd "botright vnew"
-  vim.bo.buflisted = true
-  return vim.api.nvim_get_current_win()
+local function nvimtree_windows()
+  local wins = {}
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    if vim.bo[buf].filetype == "NvimTree" then
+      table.insert(wins, win)
+    end
+  end
+  return wins
+end
+
+local function close_nvimtree_windows()
+  for _, win in ipairs(nvimtree_windows()) do
+    if vim.api.nvim_win_is_valid(win) then
+      pcall(vim.api.nvim_win_close, win, true)
+    end
+  end
+end
+
+function M.keep_nvimtree_width()
+  vim.schedule(function()
+    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      if vim.api.nvim_win_is_valid(win) then
+        local buf = vim.api.nvim_win_get_buf(win)
+        if vim.bo[buf].filetype == "NvimTree" then
+          vim.api.nvim_win_set_width(win, 30)
+        end
+      end
+    end
+  end)
 end
 
 function M.focus_work_window()
@@ -74,7 +100,7 @@ function M.focus_work_window()
     return wins[1]
   end
 
-  return create_work_window()
+  M.keep_nvimtree_width()
 end
 
 function M.open_buffer(buf)
@@ -95,8 +121,13 @@ function M.open_buffer(buf)
     target = M.focus_work_window()
   end
 
+  if not target then
+    return
+  end
+
   vim.api.nvim_set_current_win(target)
   vim.api.nvim_win_set_buf(target, buf)
+  M.keep_nvimtree_width()
 end
 
 function M.pick_work_window()
@@ -110,7 +141,18 @@ function M.pick_work_window()
     return wins[1]
   end
 
-  return create_work_window()
+  M.keep_nvimtree_width()
+end
+
+function M.pick_file_open_window()
+  local target = M.pick_work_window()
+  if target then
+    return target
+  end
+
+  vim.cmd "rightbelow vsplit"
+  M.keep_nvimtree_width()
+  return vim.api.nvim_get_current_win()
 end
 
 function M.close_current()
@@ -150,17 +192,28 @@ function M.close_current()
       M.focus_work_window()
     end
     vim.cmd.bdelete(current)
+    M.keep_nvimtree_width()
     return
   end
 
   if target then
     vim.api.nvim_win_set_buf(current_win, target)
   else
-    vim.cmd.enew()
-    vim.bo.buflisted = true
+    close_nvimtree_windows()
+
+    if #vim.api.nvim_tabpage_list_wins(0) > 1 then
+      vim.api.nvim_win_close(current_win, true)
+      pcall(vim.api.nvim_buf_delete, current, {})
+      M.keep_nvimtree_width()
+      return
+    end
+
+    vim.cmd.quit()
+    return
   end
 
   vim.cmd.bdelete(current)
+  M.keep_nvimtree_width()
 end
 
 return M
