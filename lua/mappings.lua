@@ -38,12 +38,7 @@ map("n", "<leader>b", "<cmd>enew<CR>", { desc = "buffer new" })
 map("n", "<Tab>", "<cmd>bnext<CR>", { desc = "buffer goto next" })
 map("n", "<S-Tab>", "<cmd>bprevious<CR>", { desc = "buffer goto previous" })
 map("n", "<leader>x", function()
-  local buf = vim.api.nvim_get_current_buf()
-  if vim.bo[buf].modified then
-    vim.notify("Buffer has unsaved changes", vim.log.levels.WARN)
-    return
-  end
-  vim.cmd.bdelete()
+  require("configs.buffers").close_current()
 end, { desc = "buffer close" })
 
 map("n", "<leader>/", "gcc", { remap = true, desc = "toggle comment" })
