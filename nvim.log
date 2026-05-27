@@ -1,7 +1,0 @@
-WRN 2026-05-28T00:36:50.133 c/nvim.56162.0 server_start:197: Failed to start server: operation not permitted: /var/folders/lt/nylpq1rx5xxcfgm1h7tcv_sr0000gn/T/nvim.ace/xy3z8G/nvim.56665.0
-WRN 2026-05-28T00:36:50.133 c/nvim.56162.0 server_start:197: Failed to start server: operation not permitted: /var/folders/lt/nylpq1rx5xxcfgm1h7tcv_sr0000gn/T/nvim.ace/pZuy7P/nvim.56666.0
-WRN 2026-05-28T00:36:50.138 c/nvim.56162.0 server_start:197: Failed to start server: operation not permitted: /var/folders/lt/nylpq1rx5xxcfgm1h7tcv_sr0000gn/T/nvim.ace/7nnIMY/nvim.56667.0
-WRN 2026-05-28T00:36:56.945 c/nvim.56162.0 server_start:197: Failed to start server: operation not permitted: /var/folders/lt/nylpq1rx5xxcfgm1h7tcv_sr0000gn/T/nvim.ace/OVlTAf/nvim.56675.0
-WRN 2026-05-28T00:36:56.945 c/nvim.56162.0 server_start:197: Failed to start server: operation not permitted: /var/folders/lt/nylpq1rx5xxcfgm1h7tcv_sr0000gn/T/nvim.ace/OgDtRF/nvim.56673.0
-WRN 2026-05-28T00:55:14.274 c/nvim.56162.0 server_start:197: Failed to start server: operation not permitted: /var/folders/lt/nylpq1rx5xxcfgm1h7tcv_sr0000gn/T/nvim.ace/O8PHGh/nvim.57034.0
-WRN 2026-05-28T00:55:31.158 c/nvim.56162.0 server_start:197: Failed to start server: operation not permitted: /var/folders/lt/nylpq1rx5xxcfgm1h7tcv_sr0000gn/T/nvim.ace/oiLkpP/nvim.57047.0
