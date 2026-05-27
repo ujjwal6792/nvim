@@ -63,13 +63,43 @@ end
 
 local mini_statusline = has "mini.statusline"
 if mini_statusline then
-  mini_statusline.setup { use_icons = true }
+  mini_statusline.setup {
+    use_icons = true,
+    content = {
+      active = function()
+        local mode, mode_hl = MiniStatusline.section_mode { trunc_width = 120 }
+        local git = MiniStatusline.section_git { trunc_width = 40, icon = "" }
+        local diff = MiniStatusline.section_diff { trunc_width = 75, icon = "" }
+        local diagnostics = MiniStatusline.section_diagnostics {
+          trunc_width = 75,
+          icon = "󰒡",
+          signs = { ERROR = "", WARN = "", INFO = "", HINT = "󰌵" },
+        }
+        local lsp = MiniStatusline.section_lsp { trunc_width = 75, icon = "" }
+        local filename = "󰈙 " .. MiniStatusline.section_filename { trunc_width = 140 }
+        local fileinfo = " " .. MiniStatusline.section_fileinfo { trunc_width = 120 }
+        local location = "󰍒 " .. MiniStatusline.section_location { trunc_width = 75 }
+        local search = MiniStatusline.section_searchcount { trunc_width = 75 }
+
+        return MiniStatusline.combine_groups {
+          { hl = mode_hl, strings = { " " .. mode } },
+          { hl = "UserStatusGit", strings = { git } },
+          { hl = "UserStatusDiff", strings = { diff } },
+          { hl = "UserStatusDiag", strings = { diagnostics } },
+          { hl = "UserStatusLsp", strings = { lsp } },
+          "%<",
+          { hl = "MiniStatuslineFilename", strings = { filename } },
+          "%=",
+          { hl = "MiniStatuslineFileinfo", strings = { search, fileinfo } },
+          { hl = mode_hl, strings = { location } },
+        }
+      end,
+    },
+  }
 end
 
-local mini_tabline = has "mini.tabline"
-if mini_tabline then
-  mini_tabline.setup()
-end
+require("configs.highlights").setup()
+require("configs.tabline").setup()
 
 local treesitter = has "nvim-treesitter.configs"
 if treesitter then
@@ -294,29 +324,31 @@ if docs_view then
   }
 end
 
-local image = has "image"
-if image then
-  image.setup {
-    backend = "kitty",
-    integrations = {
-      markdown = {
-        enabled = true,
-        clear_in_insert_mode = true,
-        download_remote_images = true,
-        only_render_image_at_cursor = false,
-        filetypes = { "markdown", "vimwiki" },
+if #vim.api.nvim_list_uis() > 0 then
+  local image = has "image"
+  if image then
+    image.setup {
+      backend = "kitty",
+      integrations = {
+        markdown = {
+          enabled = true,
+          clear_in_insert_mode = true,
+          download_remote_images = true,
+          only_render_image_at_cursor = false,
+          filetypes = { "markdown", "vimwiki" },
+        },
+        neorg = {
+          enabled = true,
+          clear_in_insert_mode = true,
+          download_remote_images = true,
+          only_render_image_at_cursor = false,
+          filetypes = { "norg" },
+        },
       },
-      neorg = {
-        enabled = true,
-        clear_in_insert_mode = true,
-        download_remote_images = true,
-        only_render_image_at_cursor = false,
-        filetypes = { "norg" },
-      },
-    },
-    max_height_window_percentage = 50,
-    kitty_method = "normal",
-  }
+      max_height_window_percentage = 50,
+      kitty_method = "normal",
+    }
+  end
 end
 
 local markview = has "markview"
