@@ -144,7 +144,32 @@ end
 
 local nvim_tree = has "nvim-tree"
 if nvim_tree then
+  local function nvim_tree_on_attach(bufnr)
+    local api = require "nvim-tree.api"
+    api.config.mappings.default_on_attach(bufnr)
+
+    local function opts(desc)
+      return {
+        desc = "nvim-tree: " .. desc,
+        buffer = bufnr,
+        noremap = true,
+        silent = true,
+        nowait = true,
+      }
+    end
+
+    local function open_in_work_window(node)
+      require("configs.buffers").pick_work_window()
+      api.node.open.edit(node)
+    end
+
+    vim.keymap.set("n", "<CR>", open_in_work_window, opts "Open in Work Window")
+    vim.keymap.set("n", "o", open_in_work_window, opts "Open in Work Window")
+    vim.keymap.set("n", "<2-LeftMouse>", open_in_work_window, opts "Open in Work Window")
+  end
+
   nvim_tree.setup {
+    on_attach = nvim_tree_on_attach,
     filters = { dotfiles = false },
     disable_netrw = true,
     hijack_cursor = true,
@@ -156,6 +181,21 @@ if nvim_tree then
     view = {
       width = 30,
       preserve_window_proportions = true,
+    },
+    actions = {
+      open_file = {
+        resize_window = false,
+        window_picker = {
+          enable = true,
+          picker = function()
+            return require("configs.buffers").pick_work_window()
+          end,
+          exclude = {
+            filetype = { "NvimTree", "notify", "lazy", "qf", "diff", "fugitive", "fugitiveblame" },
+            buftype = { "nofile", "terminal", "help", "prompt", "quickfix" },
+          },
+        },
+      },
     },
     renderer = {
       root_folder_label = false,
