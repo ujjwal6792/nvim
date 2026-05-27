@@ -347,9 +347,40 @@ end
 
 local auto_session = has "auto-session"
 if auto_session then
+  local function restore_launch_cwd()
+    local cwd = vim.g.launch_cwd or vim.uv.cwd()
+    if not cwd or cwd == "" then
+      return
+    end
+
+    vim.cmd("cd " .. vim.fn.fnameescape(cwd))
+    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      if vim.api.nvim_win_is_valid(win) then
+        vim.api.nvim_win_call(win, function()
+          vim.cmd("lcd " .. vim.fn.fnameescape(cwd))
+        end)
+      end
+    end
+
+    vim.schedule(function()
+      local ok, api = pcall(require, "nvim-tree.api")
+      if ok then
+        pcall(api.tree.change_root, cwd)
+        pcall(api.tree.reload)
+      end
+      require("configs.buffers").keep_nvimtree_width()
+    end)
+  end
+
   auto_session.setup {
-    cwd_change_handling = true,
+    cwd_change_handling = false,
     suppressed_dirs = { "~/" },
+    post_restore_cmds = { restore_launch_cwd },
+    no_restore_cmds = {
+      function()
+        restore_launch_cwd()
+      end,
+    },
     session_lens = {
       load_on_setup = true,
       previewer = false,
