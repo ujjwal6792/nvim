@@ -143,14 +143,14 @@ function M.setup()
 
   vim.cmd [[
     function! UserTablineSwitchBuffer(buf_id, clicks, button, mod)
-        execute 'buffer' a:buf_id
+        call v:lua.require('configs.buffers').open_buffer(a:buf_id)
     endfunction
   ]]
 
   vim.cmd [[
     function! UserTablineCloseBuffer(buf_id, clicks, button, mod)
-        execute 'buffer' a:buf_id
-        lua require('configs.buffers').close_current()
+        call v:lua.require('configs.buffers').open_buffer(a:buf_id)
+        call v:lua.require('configs.buffers').close_current()
     endfunction
   ]]
 
