@@ -1,21 +1,32 @@
--- Replace the old lspconfig require with the native vim.lsp API
--- local lspconfig = require "lspconfig"
+local capabilities = vim.lsp.protocol.make_client_capabilities()
 
--- This is still valid if you are using NvChad's helper functions
-local on_attach = require("nvchad.configs.lspconfig").on_attach
-local capabilities = require("nvchad.configs.lspconfig").capabilities
+local ok_blink, blink = pcall(require, "blink.cmp")
+if ok_blink and blink.get_lsp_capabilities then
+  capabilities = blink.get_lsp_capabilities(capabilities)
+end
 
--- You will likely want to reduce updatetime which affects CursorHold
--- Note: this setting is global and should be set only once
-vim.o.updatetime = 100
-vim.cmd [[autocmd! CursorHold,CursorHoldI * lua vim.diagnostic.open_float(nil, {focus=false})]]
+if capabilities.workspace then
+  capabilities.workspace.didChangeWatchedFiles = nil
+end
 
--- Diagnostic symbols in the sign column (gutter)
--- Diagnostic configuration is not affected by the lspconfig API change
+local function on_attach(_, bufnr)
+  local function opts(desc)
+    return { buffer = bufnr, desc = "LSP " .. desc }
+  end
+
+  vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts "go to declaration")
+  vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts "go to definition")
+  vim.keymap.set("n", "<leader>wa", vim.lsp.buf.add_workspace_folder, opts "add workspace folder")
+  vim.keymap.set("n", "<leader>wr", vim.lsp.buf.remove_workspace_folder, opts "remove workspace folder")
+  vim.keymap.set("n", "<leader>wl", function()
+    print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
+  end, opts "list workspace folders")
+  vim.keymap.set("n", "<leader>D", vim.lsp.buf.type_definition, opts "go to type definition")
+  vim.keymap.set("n", "<leader>ra", vim.lsp.buf.rename, opts "rename")
+end
+
 vim.diagnostic.config {
-  virtual_text = {
-    prefix = "●",
-  },
+  virtual_text = { prefix = "●" },
   signs = {
     text = {
       [vim.diagnostic.severity.ERROR] = " ",
@@ -26,14 +37,57 @@ vim.diagnostic.config {
   },
   underline = true,
   update_in_insert = true,
-  float = {
-    source = true, -- Or "if_many"
-  },
+  float = { source = true },
 }
 
--- svelte lsp + neovim 0.9 issue fix
-local on_attach_svelte = function(client)
-  if client.name == "svelte" then
+vim.api.nvim_create_autocmd("CursorHold", {
+  group = vim.api.nvim_create_augroup("LspDiagnosticsFloat", { clear = true }),
+  callback = function()
+    vim.diagnostic.open_float(nil, { focus = false })
+  end,
+})
+
+vim.lsp.config("*", {
+  capabilities = capabilities,
+  on_attach = on_attach,
+})
+
+vim.lsp.config("lua_ls", {
+  cmd = { "lua-language-server" },
+  filetypes = { "lua" },
+  root_markers = { { ".luarc.json", ".luarc.jsonc" }, ".stylua.toml", "stylua.toml", ".git" },
+  settings = {
+    Lua = {
+      runtime = { version = "LuaJIT" },
+      workspace = {
+        checkThirdParty = false,
+        library = {
+          vim.env.VIMRUNTIME,
+          vim.fn.stdpath "config" .. "/lua",
+        },
+      },
+    },
+  },
+})
+
+vim.lsp.config("ts_ls", {
+  cmd = { "typescript-language-server", "--stdio" },
+  filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
+  root_markers = { "tsconfig.json", "jsconfig.json", "package.json", ".git" },
+})
+
+vim.lsp.config("marksman", {
+  cmd = { "marksman", "server" },
+  filetypes = { "markdown", "markdown.mdx" },
+  root_markers = { ".marksman.toml", ".git" },
+})
+
+vim.lsp.config("svelte", {
+  cmd = { "svelteserver", "--stdio" },
+  filetypes = { "svelte" },
+  root_markers = { "svelte.config.js", "svelte.config.mjs", "package.json", ".git" },
+  on_attach = function(client, bufnr)
+    on_attach(client, bufnr)
     vim.api.nvim_create_autocmd("BufWritePost", {
       pattern = { "*.js", "*.ts" },
       group = vim.api.nvim_create_augroup("svelte_ondidchangetsorjsfile", { clear = true }),
@@ -41,88 +95,60 @@ local on_attach_svelte = function(client)
         client.notify("$/onDidChangeTsOrJsFile", { uri = ctx.match })
       end,
     })
-  end
-
-  -- attach keymaps if needed
-end
-
--- Use vim.lsp.config for servers that require custom settings
-vim.lsp.config("tsgo", {
-  on_attach = on_attach,
-  filetypes = { "javascript", "typescript", "typescriptreact", "javascriptreact", "javascript.jsx", "typescript.tsx" },
-  cmd = { "typescript-language-server", "--stdio" },
-  capabilities = capabilities,
+  end,
 })
-vim.lsp.enable "tsgo"
-
-vim.lsp.config("marksman", {
-  on_attach = on_attach,
-  filetypes = { "markdown", "markdown.mdx", "markdown.md" },
-  cmd = { "marksman", "server" },
-})
-
-vim.lsp.enable "marksman"
-
-vim.lsp.config("svelte", {
-  on_attach = on_attach_svelte,
-  capabilities = capabilities,
-  filetypes = { "svelte" },
-  cmd = { "svelteserver", "--stdio" },
-})
-
-vim.lsp.enable "svelte"
 
 vim.lsp.config("astro", {
+  cmd = { "astro-ls", "--stdio" },
+  filetypes = { "astro" },
+  root_markers = { "astro.config.js", "astro.config.mjs", "astro.config.ts", "package.json", ".git" },
   init_options = {
     configuration = {},
     typescript = {
       serverPath = vim.fs.normalize "~/.nvm/versions/node/v19.9.0/lib/node_modules/typescript/lib/tsserverlibrary.js",
     },
   },
-  on_attach = on_attach,
-  capabilities = capabilities,
 })
 
-vim.lsp.enable "astro"
-
 vim.lsp.config("tailwindcss", {
-  on_attach = on_attach,
-  capabilities = capabilities,
+  cmd = { "tailwindcss-language-server", "--stdio" },
   filetypes = {
     "typescriptreact",
     "javascriptreact",
     "javascript.jsx",
     "typescript.tsx",
     "css",
+    "scss",
     "html",
     "svelte",
     "astro",
   },
-  -- Note: The filetypes for tailwindcss are generally detected automatically.
-  -- filetypes = { ... },
+  root_markers = {
+    "tailwind.config.js",
+    "tailwind.config.cjs",
+    "tailwind.config.mjs",
+    "tailwind.config.ts",
+    "postcss.config.js",
+    "postcss.config.cjs",
+    "package.json",
+    ".git",
+  },
 })
-
-vim.lsp.enable "tailwindcss"
 
 vim.lsp.config("prismals", {
-  -- Adjust these paths based on your installation
   cmd = { "prisma-language-server", "--stdio" },
+  filetypes = { "prisma" },
+  root_markers = { "schema.prisma", ".git" },
   settings = {
-    prisma = {
-      enable = true,
-    },
+    prisma = { enable = true },
   },
 })
 
-vim.lsp.enable "prismals"
-
 vim.lsp.config("gopls", {
-  on_attach = on_attach,
-  capabilities = capabilities,
-  root_markers = { "go.mod", ".git" },
-  flags = {
-    debounce_text_changes = 150,
-  },
+  cmd = { "gopls" },
+  filetypes = { "go", "gomod", "gowork", "gotmpl" },
+  root_markers = { "go.work", "go.mod", ".git" },
+  flags = { debounce_text_changes = 150 },
   settings = {
     gopls = {
       gofumpt = true,
@@ -133,30 +159,61 @@ vim.lsp.config("gopls", {
   },
 })
 
-vim.lsp.enable "gopls"
-
 vim.lsp.config("clangd", {
-  on_attach = on_attach,
-  capabilities = capabilities,
   cmd = {
     "clangd",
     "--background-index",
     "--compile-commands-dir=.",
     "--query-driver=/Users/ace/.platformio/packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-*",
   },
+  filetypes = { "c", "cpp", "objc", "objcpp", "cuda" },
   root_markers = { "compile_commands.json", "platformio.ini", ".git" },
 })
 
-vim.lsp.enable "clangd"
+vim.lsp.config("html", {
+  cmd = { "vscode-html-language-server", "--stdio" },
+  filetypes = { "html" },
+  root_markers = { "package.json", ".git" },
+})
 
--- Use vim.lsp.enable for servers that can use the default configuration
-local servers = { "html", "cssls", "dockerls", "docker_compose_language_service" }
-for _, lsp in ipairs(servers) do
-  vim.lsp.enable(lsp)
+vim.lsp.config("cssls", {
+  cmd = { "vscode-css-language-server", "--stdio" },
+  filetypes = { "css", "scss", "less" },
+  root_markers = { "package.json", ".git" },
+})
+
+vim.lsp.config("dockerls", {
+  cmd = { "docker-langserver", "--stdio" },
+  filetypes = { "dockerfile" },
+  root_markers = { "Dockerfile", ".git" },
+})
+
+vim.lsp.config("docker_compose_language_service", {
+  cmd = { "docker-compose-langserver", "--stdio" },
+  filetypes = { "yaml.docker-compose" },
+  root_markers = { "docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml", ".git" },
+})
+
+for _, server in ipairs {
+  "lua_ls",
+  "ts_ls",
+  "marksman",
+  "svelte",
+  "astro",
+  "tailwindcss",
+  "prismals",
+  "gopls",
+  "clangd",
+  "html",
+  "cssls",
+  "dockerls",
+  "docker_compose_language_service",
+} do
+  vim.lsp.enable(server)
 end
 
 vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
-  pattern = { "docker-compose*.yml", "docker-compose*.yaml" },
+  pattern = { "docker-compose*.yml", "docker-compose*.yaml", "compose*.yml", "compose*.yaml" },
   callback = function()
     vim.bo.filetype = "yaml.docker-compose"
   end,
@@ -169,46 +226,32 @@ vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
   end,
 })
 
-if vim.fn.exists(":LspInfo") == 0 then
-  vim.api.nvim_create_user_command("LspInfo", function()
-    vim.cmd "checkhealth vim.lsp"
-  end, { desc = "Alias to :checkhealth vim.lsp" })
-end
-
-if vim.fn.exists(":LspEnable") == 0 then
-  vim.api.nvim_create_user_command("LspEnable", function(opts)
-    vim.cmd("lsp enable " .. opts.args)
-  end, {
-    nargs = "?",
-    complete = function(_, _, _)
-      return vim.tbl_keys(vim.lsp.config)
+vim.g.rustaceanvim = {
+  tools = {},
+  server = {
+    capabilities = capabilities,
+    on_attach = function(_, bufnr)
+      vim.keymap.set("n", "<leader>ra", vim.lsp.buf.code_action, { silent = true, buffer = bufnr, desc = "rust lsp actions" })
+      vim.keymap.set("n", "<leader>rs", ":RustAnalyzer restart<CR>", { silent = true, buffer = bufnr, desc = "rust lsp restart" })
+      vim.keymap.set("n", "<leader>re", function()
+        vim.cmd.RustLsp "explainError"
+      end, { silent = true, buffer = bufnr, desc = "rust explain errors" })
     end,
-    desc = "Alias to :lsp enable",
-  })
-end
-
-if vim.fn.exists(":LspDisable") == 0 then
-  vim.api.nvim_create_user_command("LspDisable", function(opts)
-    vim.cmd("lsp disable " .. opts.args)
-  end, {
-    nargs = "?",
-    complete = function(_, _, _)
-      return vim.tbl_keys(vim.lsp.config)
-    end,
-    desc = "Alias to :lsp disable",
-  })
-end
-
-if vim.fn.exists(":LspRestart") == 0 then
-  vim.api.nvim_create_user_command("LspRestart", function(opts)
-    local suffix = opts.bang and "!" or ""
-    vim.cmd("lsp restart" .. suffix .. " " .. opts.args)
-  end, {
-    nargs = "?",
-    bang = true,
-    complete = function(_, _, _)
-      return vim.tbl_keys(vim.lsp.config)
-    end,
-    desc = "Alias to :lsp restart",
-  })
-end
+    default_settings = {
+      ["rust-analyzer"] = {
+        hover_actions = { auto_focus = true },
+        assist = {
+          importEnforceGranularity = true,
+          importPrefix = "crate",
+        },
+        cargo = { allFeatures = true },
+        inlayHints = { locationLinks = false },
+        diagnostics = {
+          enable = true,
+          experimental = { enable = true },
+        },
+      },
+    },
+  },
+  dap = {},
+}

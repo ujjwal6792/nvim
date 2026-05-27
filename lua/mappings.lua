@@ -1,179 +1,159 @@
-require "nvchad.mappings"
-
--- add yours here
-local g = vim.g
-local api = vim.api
 local map = vim.keymap.set
-local uv = vim.loop
 local fn = vim.fn
 
-local function opts_to_id(id)
-  for _, opts in pairs(g.nvchad_terms) do
-    if opts.id == id then
-      return opts
-    end
-  end
-end
-
---[[ -- Disable default 's' in Normal mode ]]
 vim.keymap.set("n", "s", "<Nop>")
-
--- Disable default 's' in Visual mode (optional)
 vim.keymap.set("x", "s", "<Nop>")
 
-map("n", ";", ":", { desc = "CMD enter command mode" })
--- Replace :q → :qa
+map("i", "<C-b>", "<Esc>^i", { desc = "move beginning of line" })
+map("i", "<C-e>", "<End>", { desc = "move end of line" })
+map("i", "<C-h>", "<Left>", { desc = "move left" })
+map("i", "<C-l>", "<Right>", { desc = "move right" })
+map("i", "<C-j>", "<Down>", { desc = "move down" })
+map("i", "<C-k>", "<Up>", { desc = "move up" })
+
+map("n", "<C-h>", "<C-w>h", { desc = "switch window left" })
+map("n", "<C-l>", "<C-w>l", { desc = "switch window right" })
+map("n", "<C-j>", "<C-w>j", { desc = "switch window down" })
+map("n", "<C-k>", "<C-w>k", { desc = "switch window up" })
+
+map("n", "<Esc>", "<cmd>noh<CR>", { desc = "clear highlights" })
+map("n", "<C-s>", "<cmd>w<CR>", { desc = "save file" })
+map("n", "<C-c>", "<cmd>%y+<CR>", { desc = "copy whole file" })
+map("n", ";", ":", { desc = "enter command mode" })
+
 vim.cmd [[cnoreabbrev <expr> q  getcmdtype() == ':' && getcmdline() == 'q'  ? 'qa'  : 'q']]
--- Replace :q! → :qa!
 vim.cmd [[cnoreabbrev <expr> q! getcmdtype() == ':' && getcmdline() == 'q!' ? 'qa!' : 'q!']]
+
 map("i", "jj", "jj")
 map("i", "jk", "jk")
 
--- map({ "n", "i", "v" }, "<C-s>", "<cmd> w <cr>")
+map("n", "<leader>n", "<cmd>set nu!<CR>", { desc = "toggle line number" })
+map("n", "<leader>rn", "<cmd>set rnu!<CR>", { desc = "toggle relative number" })
+map({ "n", "x" }, "<leader>fm", function()
+  require("conform").format { lsp_format = "fallback" }
+end, { desc = "format file" })
+map("n", "<leader>ds", vim.diagnostic.setloclist, { desc = "LSP diagnostic loclist" })
 
--- Comment.nvim blockwise toggle
-map("n", "<leader>/", "gcc", { remap = true, desc = "Toggle comment" })
-map("v", "<leader>/", "gc", { remap = true, desc = "Toggle comment" })
---[[ map("n", "<leader>/", function()
-  require("Comment.api").toggle.current.linewise()
-end, { desc = "Smart comment toggle" })
+map("n", "<leader>b", "<cmd>enew<CR>", { desc = "buffer new" })
+map("n", "<Tab>", "<cmd>bnext<CR>", { desc = "buffer goto next" })
+map("n", "<S-Tab>", "<cmd>bprevious<CR>", { desc = "buffer goto previous" })
+map("n", "<leader>x", function()
+  local buf = vim.api.nvim_get_current_buf()
+  if vim.bo[buf].modified then
+    vim.notify("Buffer has unsaved changes", vim.log.levels.WARN)
+    return
+  end
+  vim.cmd.bdelete()
+end, { desc = "buffer close" })
 
-map("v", "<leader>/", function()
-  local esc = vim.api.nvim_replace_termcodes("<ESC>", true, false, true)
-  vim.api.nvim_feedkeys(esc, "nx", false)
-  require("Comment.api").toggle.linewise(vim.fn.visualmode())
-end, { desc = "Smart comment toggle (visual)" }) ]]
+map("n", "<leader>/", "gcc", { remap = true, desc = "toggle comment" })
+map("v", "<leader>/", "gc", { remap = true, desc = "toggle comment" })
 
--- nvimtree
-map("n", "<leader>e", "<cmd> NvimTreeFocus<CR>", { desc = "Focus nvimtree" })
-map("n", "<leader>we", "<cmd> NvimTreeRefresh<CR>", { desc = "Refresh nvimtree" })
-map("n", "<leader>ww", "<cmd> NvimTreeToggle<CR>", { desc = "Toggle nvimtree" })
+map("n", "<C-n>", "<cmd>NvimTreeToggle<CR>", { desc = "nvimtree toggle window" })
+map("n", "<leader>e", "<cmd>NvimTreeFocus<CR>", { desc = "focus nvimtree" })
+map("n", "<leader>we", "<cmd>NvimTreeRefresh<CR>", { desc = "refresh nvimtree" })
+map("n", "<leader>ww", "<cmd>NvimTreeToggle<CR>", { desc = "toggle nvimtree" })
 
--- input edits
+map("n", "<leader>fw", "<cmd>Telescope live_grep<CR>", { desc = "telescope live grep" })
+map("n", "<leader>fb", "<cmd>Telescope buffers<CR>", { desc = "telescope find buffers" })
+map("n", "<leader>fh", "<cmd>Telescope help_tags<CR>", { desc = "telescope help page" })
+map("n", "<leader>ma", "<cmd>Telescope marks<CR>", { desc = "telescope find marks" })
+map("n", "<leader>fo", "<cmd>Telescope oldfiles<CR>", { desc = "telescope find oldfiles" })
+map("n", "<leader>fz", "<cmd>Telescope current_buffer_fuzzy_find<CR>", { desc = "telescope find in buffer" })
+map("n", "<leader>cm", "<cmd>Telescope git_commits<CR>", { desc = "telescope git commits" })
+map("n", "<leader>gt", "<cmd>Telescope git_status<CR>", { desc = "telescope git status" })
+map("n", "<leader>ff", "<cmd>Telescope find_files<CR>", { desc = "telescope find files" })
+map("n", "<leader>fa", "<cmd>Telescope find_files follow=true no_ignore=true hidden=true<CR>", { desc = "telescope find all files" })
+
 map("n", "ea", "$a", { desc = "move cursor to end and enter insert mode" })
 
--- term toggle
+map("t", "<C-x>", "<C-\\><C-N>", { desc = "terminal escape terminal mode" })
+
 map("n", "<leader>v", function()
-  if g.nvchad_terms then
-    for _, opts in pairs(g.nvchad_terms) do
-      if opts.id == "htoggleTerm" then
-        local x = opts_to_id(opts.id)
-        if x or api.nvim_buf_is_valid(x.buf) then
-          local buf = vim.fn.getbufinfo(x.buf)[1]
-          if buf then
-            if buf.hidden ~= 1 then
-              api.nvim_win_close(x.win, true)
-            end
-          end
-        end
-      end
-    end
-  end
-  vim.cmd "wincmd l"
-  require("nvchad.term").toggle { pos = "vsp", id = "vtoggleTerm" }
-end, { desc = "Terminal New horizontal term" })
+  require("configs.term").new { pos = "vsp" }
+end, { desc = "terminal new vertical term" })
 
 map("n", "<leader>h", function()
-  if g.nvchad_terms then
-    for _, opts in pairs(g.nvchad_terms) do
-      if opts.id == "vtoggleTerm" then
-        local x = opts_to_id(opts.id)
-        if x or api.nvim_buf_is_valid(x.buf) then
-          local buf = vim.fn.getbufinfo(x.buf)[1]
-          if buf then
-            if buf.hidden ~= 1 then
-              api.nvim_win_close(x.win, true)
-            end
-          end
-        end
-      end
-    end
-  end
-  vim.cmd "wincmd l"
-  require("nvchad.term").toggle { pos = "sp", id = "htoggleTerm" }
-end, { desc = "Terminal New vertical window" })
+  require("configs.term").new { pos = "sp" }
+end, { desc = "terminal new horizontal term" })
 
--- toggleable
 map({ "n", "t" }, "<A-v>", function()
-  if g.nvchad_terms then
-    for _, opts in pairs(g.nvchad_terms) do
-      if opts.id == "htoggleTerm" then
-        local x = opts_to_id(opts.id)
-        if x or api.nvim_buf_is_valid(x.buf) then
-          local buf = vim.fn.getbufinfo(x.buf)[1]
-          if buf then
-            if buf.hidden ~= 1 then
-              api.nvim_win_close(x.win, true)
-            end
-          end
-        end
-      end
-    end
-  end
-  vim.cmd "wincmd l"
-  require("nvchad.term").toggle { pos = "vsp", id = "vtoggleTerm" }
-end, { desc = "Terminal Toggleable vertical term" })
+  require("configs.term").toggle { pos = "vsp", id = "vtoggleTerm" }
+end, { desc = "terminal toggleable vertical term" })
 
 map({ "n", "t" }, "<A-h>", function()
-  if g.nvchad_terms then
-    for _, opts in pairs(g.nvchad_terms) do
-      if opts.id == "vtoggleTerm" then
-        local x = opts_to_id(opts.id)
-        if x or api.nvim_buf_is_valid(x.buf) then
-          local buf = vim.fn.getbufinfo(x.buf)[1]
-          if buf then
-            if buf.hidden ~= 1 then
-              api.nvim_win_close(x.win, true)
-            end
-          end
-        end
-      end
-    end
-  end
-  vim.cmd "wincmd l"
-  require("nvchad.term").toggle { pos = "sp", id = "htoggleTerm" }
-end, { desc = "Terminal New horizontal term" })
+  require("configs.term").toggle { pos = "sp", id = "htoggleTerm" }
+end, { desc = "terminal toggleable horizontal term" })
 
 map({ "n", "t" }, "<A-i>", function()
-  require("nvchad.term").toggle { pos = "float", id = "floatTerm" }
-end, { desc = "Terminal Toggle Floating term" })
+  require("configs.term").toggle { pos = "float", id = "floatTerm" }
+end, { desc = "terminal toggle floating term" })
 
--- custom
-map("n", "<C-d>", "Find Under")
---[[ map("n", "<leader>fp", "<cmd> :Project<CR>", { desc = "Open Projects" }) ]]
-map("n", "gt", "<cmd> :LazyGit<CR>", { desc = "open lazygit" })
-map("n", "<leader>gf", "<cmd> :LazyGitFilter<CR>", { desc = "lazygit commits" })
-map("n", "gG", "<cmd> :LazyGitCurrentFile<CR>", { desc = "open lazygit for current" })
-map("n", "<leader>gF", "<cmd> :LazyGitFilter<CR>", { desc = "lazygit commits for current" })
-map("n", "<leader>db", "<cmd> DapToggleBreakpoint<CR>", { desc = "debugger toggle breakpoints" })
+map("n", "gt", "<cmd>LazyGit<CR>", { desc = "open lazygit" })
+map("n", "<leader>gf", "<cmd>LazyGitFilter<CR>", { desc = "lazygit commits" })
+map("n", "gG", "<cmd>LazyGitCurrentFile<CR>", { desc = "open lazygit for current" })
+map("n", "<leader>gF", "<cmd>LazyGitFilterCurrentFile<CR>", { desc = "lazygit commits for current" })
 map("n", "<leader>gt", function()
-  require("telescope").extensions.lazygit.lazygit()
+  local ok, telescope = pcall(require, "telescope")
+  if ok then
+    telescope.extensions.lazygit.lazygit()
+  else
+    vim.cmd "LazyGit"
+  end
 end, { desc = "open lazygit telescope" })
-map("n", "<leader>dus", function()
-  local widgets = require "dap.ui.widgets"
-  local sidebar = widgets.sidebar(widgets.scopes)
-  sidebar.open()
-end, { desc = "Open debugging sidebar" })
 
--- gitsigns
-local gitsigns = require "gitsigns"
-map("n", "<leader>gb", "<cmd>:Gitsigns blame_line<CR>", { desc = "git blame line" })
-map("n", "<leader>gg", gitsigns.preview_hunk, { desc = "git preview hunk" })
-map("n", "<leader>gh", gitsigns.toggle_deleted, { desc = "git toggle deleted" })
-map("n", "<leader>gs", gitsigns.stage_hunk, { desc = "git stage hunk" })
-map("n", "<leader>gu", gitsigns.undo_stage_hunk, { desc = "git undo stage hunk" })
-map("n", "<leader>gr", gitsigns.reset_hunk, { desc = "git reset hunk" })
-map("n", "]c", gitsigns.next_hunk, { desc = "go to next hunk" })
-map("n", "[c", gitsigns.prev_hunk, { desc = "go to previous hunk" })
+map("n", "<leader>gb", "<cmd>Gitsigns blame_line<CR>", { desc = "git blame line" })
+map("n", "<leader>gg", function()
+  require("gitsigns").preview_hunk()
+end, { desc = "git preview hunk" })
+map("n", "<leader>gh", function()
+  require("gitsigns").toggle_deleted()
+end, { desc = "git toggle deleted" })
+map("n", "<leader>gs", function()
+  require("gitsigns").stage_hunk()
+end, { desc = "git stage hunk" })
+map("n", "<leader>gu", function()
+  require("gitsigns").undo_stage_hunk()
+end, { desc = "git undo stage hunk" })
+map("n", "<leader>gr", function()
+  require("gitsigns").reset_hunk()
+end, { desc = "git reset hunk" })
+map("n", "]c", function()
+  require("gitsigns").next_hunk()
+end, { desc = "go to next hunk" })
+map("n", "[c", function()
+  require("gitsigns").prev_hunk()
+end, { desc = "go to previous hunk" })
 
--- rust cargo run
--- Get the full path to Cargo.toml in the current working directory
+map("n", "<leader>wK", "<cmd>WhichKey<CR>", { desc = "whichkey all keymaps" })
+map("n", "<leader>wk", function()
+  vim.cmd("WhichKey " .. fn.input "WhichKey: ")
+end, { desc = "whichkey query lookup" })
+
+map("n", "<leader><leader>", "<cmd>Yazi<CR>", { desc = "open yazi at current file" })
+map({ "n", "v" }, "<leader>cw", "<cmd>Yazi cwd<CR>", { desc = "open yazi cwd" })
+map("n", "<C-Up>", "<cmd>Yazi toggle<CR>", { desc = "resume yazi" })
+
+map("n", "<leader>fr", function()
+  require("spectre").open()
+end, { desc = "replace in files" })
+
+map("n", "<leader>sr", "<cmd>AutoSession search<CR>", { desc = "session search" })
+map("n", "<leader>ss", "<cmd>AutoSession save<CR>", { desc = "save session" })
+map("n", "<leader>sa", "<cmd>AutoSession toggle<CR>", { desc = "toggle autosave" })
+map("n", "<leader>dd", "<cmd>DocsViewToggle<CR>", { desc = "docs view toggle" })
+
+map("n", "<leader>mc", "<cmd>Checkbox toggle<CR>", { desc = "markdown checkbox toggle" })
+map("n", "<leader>mh-", "<cmd>Heading decrease<CR>", { desc = "markdown heading decrease" })
+map("n", "<leader>mh=", "<cmd>Heading increase<CR>", { desc = "markdown heading increase" })
+map("n", "<leader>mn", function()
+  require("notes").open_notes()
+end, { desc = "open notes" })
+
 local cargo_toml = fn.getcwd() .. "/Cargo.toml"
-
--- Check if the file exists
-if uv.fs_stat(cargo_toml) then
-  vim.keymap.set("n", "<leader>rc", function()
-    require("nvchad.term").runner {
+if vim.uv.fs_stat(cargo_toml) then
+  map("n", "<leader>rc", function()
+    require("configs.term").runner {
       pos = "float",
       cmd = "cargo run",
       id = "rcr",
@@ -181,21 +161,3 @@ if uv.fs_stat(cargo_toml) then
     }
   end, { desc = "cargo run" })
 end
-
--- ghostty show app name in tab
-if fn.getenv "TERM_PROGRAM" == "ghostty" then
-  vim.opt.title = true
-  vim.opt.titlestring = "%{fnamemodify(getcwd(), ':t')}"
-end
-
-vim.keymap.set({ "n", "v" }, "<RightMouse>", function()
-  require("menu.utils").delete_old_menus()
-
-  vim.cmd.exec '"normal! \\<RightMouse>"'
-
-  -- clicked buf
-  local buf = vim.api.nvim_win_get_buf(vim.fn.getmousepos().winid)
-  local options = vim.bo[buf].ft == "NvimTree" and "nvimtree" or "default"
-
-  require("menu").open(options, { mouse = true })
-end, {})

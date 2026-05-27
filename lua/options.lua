@@ -1,12 +1,14 @@
-require "nvchad.options"
-
--- add yours here!
-
-local o = vim.o
 local opt = vim.opt
+local o = vim.o
 local g = vim.g
 
-o.cursorlineopt = "both" -- to enable cursorline!
+o.laststatus = 3
+o.showmode = false
+o.splitkeep = "screen"
+
+o.clipboard = "unnamedplus"
+o.cursorline = true
+o.cursorlineopt = "both"
 
 o.expandtab = true
 o.autoindent = true
@@ -19,15 +21,12 @@ o.ignorecase = true
 o.smartcase = true
 o.mouse = "a"
 
--- Numbers
--- o.relativenumber = true
 o.number = true
 o.numberwidth = 2
 o.ruler = true
-opt.clipboard = "unnamedplus"
--- disable nvim intro
-opt.shortmess:append "sI"
 
+opt.fillchars = { eob = " " }
+opt.shortmess:append "sI"
 opt.signcolumn = "yes"
 opt.splitbelow = true
 opt.splitright = true
@@ -35,17 +34,23 @@ opt.termguicolors = true
 opt.timeoutlen = 400
 opt.undofile = true
 opt.swapfile = false
--- interval for writing swap file to disk, also used by gitsigns
 opt.updatetime = 150
-
-opt.iskeyword:append "-" -- makes neovim read - as part of the word
--- go to previous/next line with h,l,left arrow and right arrow
--- when cursor reaches end/beginning of line
+opt.iskeyword:append "-"
 opt.whichwrap:append "<>[]hl"
 opt.backspace = "indent,eol,start"
 
 g.mapleader = " "
+g.maplocalleader = " "
 g.skip_ts_context_commentstring_module = true
+g.loaded_node_provider = 0
+g.loaded_python3_provider = 0
+g.loaded_perl_provider = 0
+g.loaded_ruby_provider = 0
+g.loaded_netrw = 1
+g.loaded_netrwPlugin = 1
+
+local mason_bin = vim.fs.joinpath(vim.fn.stdpath "data", "mason", "bin")
+vim.env.PATH = mason_bin .. ":" .. vim.env.PATH
 
 local markdown_notes_group = vim.api.nvim_create_augroup("DefaultEmptyMarkdown", { clear = true })
 
@@ -70,16 +75,7 @@ vim.api.nvim_create_autocmd({ "VimEnter", "BufEnter" }, {
   callback = use_markdown_for_empty_buffer,
 })
 
--- wsl setup for clipboard
---[[ vim.g.clipboard = {
-  name = "WslClipboard",
-  copy = {
-    ["+"] = "clip.exe",
-    ["*"] = "clip.exe",
-  },
-  paste = {
-    ["+"] = 'pwsh.exe -c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))',
-    ["*"] = 'pwsh.exe -c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))',
-  },
-  cache_enabled = 0,
-} ]]
+if vim.fn.getenv "TERM_PROGRAM" == "ghostty" then
+  opt.title = true
+  opt.titlestring = "%{fnamemodify(getcwd(), ':t')}"
+end
