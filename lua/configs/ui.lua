@@ -159,7 +159,7 @@ if nvim_tree then
     end
 
     local function open_in_work_window(node)
-      require("configs.buffers").pick_work_window()
+      require("configs.buffers").pick_file_open_window()
       api.node.open.edit(node)
     end
 
@@ -185,11 +185,11 @@ if nvim_tree then
     actions = {
       open_file = {
         resize_window = false,
-        window_picker = {
-          enable = true,
-          picker = function()
-            return require("configs.buffers").pick_work_window()
-          end,
+          window_picker = {
+            enable = true,
+            picker = function()
+              return require("configs.buffers").pick_file_open_window()
+            end,
           exclude = {
             filetype = { "NvimTree", "notify", "lazy", "qf", "diff", "fugitive", "fugitiveblame" },
             buftype = { "nofile", "terminal", "help", "prompt", "quickfix" },
@@ -216,6 +216,13 @@ if nvim_tree then
       },
     },
   }
+
+  vim.api.nvim_create_autocmd({ "WinClosed", "BufDelete", "BufWipeout" }, {
+    group = vim.api.nvim_create_augroup("NvimTreeWidthGuard", { clear = true }),
+    callback = function()
+      require("configs.buffers").keep_nvimtree_width()
+    end,
+  })
 end
 
 local telescope = has "telescope"
@@ -393,6 +400,58 @@ end
 
 local markview = has "markview"
 if markview then
+  local markdown_filetypes = {
+    ["markdown"] = true,
+    ["markdown.mdx"] = true,
+    ["quarto"] = true,
+    ["rmd"] = true,
+    ["typst"] = true,
+    ["asciidoc"] = true,
+  }
+
+  markview.setup {
+    preview = {
+      filetypes = vim.tbl_keys(markdown_filetypes),
+      ignore_buftypes = { "nofile", "terminal", "prompt", "quickfix", "help" },
+      condition = function(buf)
+        if not vim.api.nvim_buf_is_valid(buf) then
+          return false
+        end
+
+        local ft = vim.bo[buf].filetype
+        if not markdown_filetypes[ft] then
+          return false
+        end
+
+        local lang = vim.treesitter.language.get_lang(ft) or ft
+        local ok = pcall(vim.treesitter.get_parser, buf, lang)
+        return ok
+      end,
+    },
+  }
+
+  local actions = require "markview.actions"
+  local original_set_query = actions.set_query
+  actions.set_query = function(buf)
+    buf = buf or vim.api.nvim_get_current_buf()
+    if not vim.api.nvim_buf_is_valid(buf) then
+      return
+    end
+
+    local ft = vim.bo[buf].filetype
+    if not markdown_filetypes[ft] then
+      return
+    end
+
+    local lang = vim.treesitter.language.get_lang(ft) or ft
+    local ok = pcall(vim.treesitter.get_parser, buf, lang)
+    if not ok then
+      return
+    end
+
+    return original_set_query(buf)
+  end
+
   local ok_checkboxes, checkboxes = pcall(require, "markview.extras.checkboxes")
   if ok_checkboxes then
     checkboxes.setup()
