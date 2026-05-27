@@ -2,6 +2,8 @@ local opt = vim.opt
 local o = vim.o
 local g = vim.g
 
+g.launch_cwd = vim.uv.cwd()
+
 o.laststatus = 3
 o.showmode = false
 o.splitkeep = "screen"
@@ -28,6 +30,7 @@ o.ruler = true
 opt.fillchars = { eob = " " }
 opt.shortmess:append "sI"
 opt.signcolumn = "yes"
+opt.sessionoptions = "blank,buffers,folds,help,tabpages,winsize,winpos,terminal,localoptions"
 opt.splitbelow = true
 opt.splitright = true
 opt.termguicolors = true
