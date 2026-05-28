@@ -26,14 +26,18 @@ local pos_data = {
   vsp = { resize = "width", area = "columns" },
 }
 
-local function focus_edit_window()
-  if vim.bo.filetype ~= "NvimTree" then
+local function is_work_window(win)
+  local buf = api.nvim_win_get_buf(win)
+  return vim.bo[buf].buftype == "" and vim.bo[buf].filetype ~= "NvimTree"
+end
+
+local function focus_work_window()
+  if is_work_window(0) then
     return
   end
 
   for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
-    local buf = api.nvim_win_get_buf(win)
-    if vim.bo[buf].filetype ~= "NvimTree" then
+    if is_work_window(win) then
       api.nvim_set_current_win(win)
       return
     end
@@ -63,7 +67,7 @@ function M.display(opts)
   if opts.pos == "float" then
     opts.win = create_float(opts.buf, opts)
   else
-    focus_edit_window()
+    focus_work_window()
     vim.cmd(opts.pos)
     opts.win = api.nvim_get_current_win()
     local pos_type = pos_data[opts.pos]
