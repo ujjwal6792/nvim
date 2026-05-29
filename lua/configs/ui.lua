@@ -142,35 +142,51 @@ require("configs.highlights").setup()
 require("configs.tabline").setup()
 require "configs.autoread"
 
-local treesitter = has "nvim-treesitter.configs"
+local treesitter = has "nvim-treesitter"
 if treesitter then
-  treesitter.setup {
-    ensure_installed = {
-      "astro",
-      "scss",
-      "svelte",
-      "vim",
-      "lua",
-      "html",
-      "css",
-      "json",
-      "javascript",
-      "typescript",
-      "tsx",
-      "prisma",
-      "go",
-      "c",
-      "rust",
-      "markdown",
-      "markdown_inline",
-    },
-    highlight = { enable = true },
-    indent = { enable = true },
-    context_commentstring = {
-      enable = true,
-      enable_autocmd = false,
-    },
+  local parsers = {
+    "astro",
+    "scss",
+    "svelte",
+    "vim",
+    "lua",
+    "html",
+    "css",
+    "json",
+    "javascript",
+    "typescript",
+    "tsx",
+    "prisma",
+    "go",
+    "c",
+    "cpp",
+    "rust",
+    "proto",
+    "markdown",
+    "markdown_inline",
   }
+
+  treesitter.setup {
+    install_dir = vim.fn.stdpath "data" .. "/site",
+  }
+  if vim.fn.executable "tree-sitter" == 1 then
+    treesitter.install(parsers)
+  else
+    vim.schedule(function()
+      vim.notify("Install tree-sitter CLI to enable missing Treesitter parsers and folds", vim.log.levels.WARN)
+    end)
+  end
+
+  vim.api.nvim_create_autocmd("FileType", {
+    group = vim.api.nvim_create_augroup("UserTreesitter", { clear = true }),
+    callback = function(args)
+      if pcall(vim.treesitter.start, args.buf) then
+        vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+        vim.wo.foldmethod = "expr"
+        vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+      end
+    end,
+  })
 end
 
 local comment = has "Comment"

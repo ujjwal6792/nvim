@@ -15,6 +15,19 @@ map("n", "<C-h>", "<C-w>h", { desc = "switch window left" })
 map("n", "<C-l>", "<C-w>l", { desc = "switch window right" })
 map("n", "<C-j>", "<C-w>j", { desc = "switch window down" })
 map("n", "<C-k>", "<C-w>k", { desc = "switch window up" })
+map("n", "<C-Left>", "<C-w>h", { desc = "switch window left" })
+map("n", "<C-Right>", "<C-w>l", { desc = "switch window right" })
+map("n", "<C-Down>", "<C-w>j", { desc = "switch window down" })
+map("n", "<C-Up>", "<C-w>k", { desc = "switch window up" })
+
+local function map_if_free(mode, lhs, rhs, opts)
+  if vim.fn.maparg(lhs, mode) == "" then
+    map(mode, lhs, rhs, opts)
+  end
+end
+
+map_if_free("n", "f", "za", { desc = "toggle fold" })
+map_if_free("n", "F", "zA", { desc = "toggle fold recursively" })
 
 map("n", "<Esc>", "<cmd>noh<CR>", { desc = "clear highlights" })
 map("n", "<C-s>", "<cmd>w<CR>", { desc = "save file" })
@@ -127,7 +140,6 @@ end, { desc = "whichkey query lookup" })
 
 map("n", "<leader><leader>", "<cmd>Yazi<CR>", { desc = "open yazi at current file" })
 map({ "n", "v" }, "<leader>cw", "<cmd>Yazi cwd<CR>", { desc = "open yazi cwd" })
-map("n", "<C-Up>", "<cmd>Yazi toggle<CR>", { desc = "resume yazi" })
 
 map("n", "<leader>fr", function()
   require("spectre").open()

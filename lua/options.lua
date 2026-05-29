@@ -2,6 +2,19 @@ local opt = vim.opt
 local o = vim.o
 local g = vim.g
 
+if vim.lsp and vim.lsp.get_client_by_id then
+  vim.lsp.get_buffers_by_client_id = function(client_id)
+    local client = vim.lsp.get_client_by_id(client_id)
+    if not client or not client.attached_buffers then
+      return {}
+    end
+
+    local buffers = vim.tbl_keys(client.attached_buffers)
+    table.sort(buffers)
+    return buffers
+  end
+end
+
 g.launch_cwd = vim.uv.cwd()
 
 o.laststatus = 3
@@ -27,8 +40,13 @@ o.mouse = "a"
 o.number = true
 o.numberwidth = 2
 o.ruler = true
+o.foldlevel = 99
+o.foldlevelstart = 99
+o.foldenable = true
 
 opt.fillchars = { eob = " " }
+opt.foldmethod = "expr"
+opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
 opt.shortmess:append "sI"
 opt.signcolumn = "yes"
 opt.sessionoptions = "blank,buffers,folds,help,tabpages,winsize,winpos,terminal,localoptions"
