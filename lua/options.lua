@@ -14,6 +14,7 @@ o.cursorlineopt = "both"
 
 o.expandtab = true
 o.autoindent = true
+o.autoread = true
 o.shiftwidth = 2
 o.smartindent = true
 o.tabstop = 2

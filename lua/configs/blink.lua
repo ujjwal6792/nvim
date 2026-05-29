@@ -108,7 +108,15 @@ blink.setup {
     },
   },
   sources = {
-    default = { "lsp", "path", "snippets", "buffer" },
+    default = { "lsp", "path", "cwd_files", "snippets", "buffer" },
+    providers = {
+      cwd_files = {
+        name = "CWD files",
+        module = "configs.cwd_files",
+        min_keyword_length = 1,
+        score_offset = -2,
+      },
+    },
   },
   snippets = { preset = "default" },
   fuzzy = { implementation = "lua" },

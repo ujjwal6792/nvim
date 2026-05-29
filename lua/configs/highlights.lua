@@ -3,24 +3,24 @@ local M = {}
 local function palette()
   local ok, palettes = pcall(require, "catppuccin.palettes")
   if ok then
-    return palettes.get_palette "mocha"
+    return palettes.get_palette "macchiato"
   end
 
   return {
-    base = "#1e1e2e",
-    mantle = "#181825",
-    crust = "#11111b",
-    surface0 = "#313244",
-    surface1 = "#45475a",
-    surface2 = "#585b70",
-    text = "#cdd6f4",
-    subtext0 = "#a6adc8",
-    green = "#a6e3a1",
-    overlay0 = "#6c7086",
-    rosewater = "#f5e0dc",
-    red = "#f38ba8",
-    peach = "#fab387",
-    yellow = "#f9e2af",
+    base = "#24273a",
+    mantle = "#1e2030",
+    crust = "#181926",
+    surface0 = "#363a4f",
+    surface1 = "#494d64",
+    surface2 = "#5b6078",
+    text = "#cad3f5",
+    subtext0 = "#a5adcb",
+    green = "#a6da95",
+    overlay0 = "#6e738d",
+    rosewater = "#f4dbd6",
+    red = "#ed8796",
+    peach = "#f5a97f",
+    yellow = "#eed49f",
   }
 end
 
@@ -57,6 +57,35 @@ function M.apply()
   vim.api.nvim_set_hl(0, "TelescopeResultsTitle", { fg = c.crust, bg = c.green, bold = true })
   vim.api.nvim_set_hl(0, "TelescopePreviewTitle", { fg = c.crust, bg = c.peach, bold = true })
   vim.api.nvim_set_hl(0, "TelescopePromptTitle", { fg = c.crust, bg = c.red, bold = true })
+  vim.api.nvim_set_hl(0, "NvimTreeRootFolder", { fg = "#F9B388", bold = true })
+  vim.api.nvim_set_hl(0, "NvimTreeFolderName", { fg = "#F9B388" })
+  vim.api.nvim_set_hl(0, "NvimTreeEmptyFolderName", { fg = "#F9B388" })
+  vim.api.nvim_set_hl(0, "NvimTreeOpenedFolderName", { fg = "#F9B388" })
+  vim.api.nvim_set_hl(0, "NvimTreeSymlinkFolderName", { fg = "#F9B388" })
+  vim.api.nvim_set_hl(0, "NvimTreeFolderIcon", { fg = "#F9B388" })
+  vim.api.nvim_set_hl(0, "NvimTreeClosedFolderIcon", { fg = "#F9B388" })
+  vim.api.nvim_set_hl(0, "NvimTreeOpenedFolderIcon", { fg = "#F9B388" })
+  vim.api.nvim_set_hl(0, "NvimTreeFolderArrowClosed", { fg = "#F9B388" })
+  vim.api.nvim_set_hl(0, "NvimTreeFolderArrowOpen", { fg = "#F9B388" })
+  vim.api.nvim_set_hl(0, "NvimTreeBookmarkIcon", { fg = "#F9B388" })
+  vim.api.nvim_set_hl(0, "NvimTreeGitDirtyIcon", { fg = c.green })
+  vim.api.nvim_set_hl(0, "NvimTreeGitStagedIcon", { fg = c.green })
+  vim.api.nvim_set_hl(0, "NvimTreeGitNewIcon", { fg = c.green })
+  vim.api.nvim_set_hl(0, "NvimTreeGitRenamedIcon", { fg = c.green })
+  vim.api.nvim_set_hl(0, "NvimTreeGitFileDirtyHL", { fg = c.green })
+  vim.api.nvim_set_hl(0, "NvimTreeGitFileStagedHL", { fg = c.green })
+  vim.api.nvim_set_hl(0, "NvimTreeGitFileNewHL", { fg = c.green })
+  vim.api.nvim_set_hl(0, "NvimTreeGitFileRenamedHL", { fg = c.green })
+  vim.api.nvim_set_hl(0, "NvimTreeGitFolderDirtyHL", { fg = c.green })
+  vim.api.nvim_set_hl(0, "NvimTreeGitFolderStagedHL", { fg = c.green })
+  vim.api.nvim_set_hl(0, "NvimTreeGitFolderNewHL", { fg = c.green })
+  vim.api.nvim_set_hl(0, "NvimTreeGitFolderRenamedHL", { fg = c.green })
+  vim.api.nvim_set_hl(0, "NvimTreeModifiedIcon", { fg = c.green })
+  vim.api.nvim_set_hl(0, "NvimTreeModifiedFileHL", { fg = c.green })
+  vim.api.nvim_set_hl(0, "NvimTreeModifiedFolderHL", { fg = c.green })
+  vim.api.nvim_set_hl(0, "NvimTreeGitDeletedIcon", { fg = c.red })
+  vim.api.nvim_set_hl(0, "NvimTreeGitFileDeletedHL", { fg = c.red })
+  vim.api.nvim_set_hl(0, "NvimTreeGitFolderDeletedHL", { fg = c.red })
   vim.api.nvim_set_hl(0, "WhichKey", { fg = c.green, bold = true })
   vim.api.nvim_set_hl(0, "WhichKeyDesc", { fg = c.yellow })
   vim.api.nvim_set_hl(0, "WhichKeyGroup", { fg = c.peach })

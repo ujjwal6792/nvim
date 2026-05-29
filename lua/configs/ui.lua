@@ -8,7 +8,7 @@ end
 local catppuccin = has "catppuccin"
 if catppuccin then
   catppuccin.setup {
-    flavour = "mocha",
+    flavour = "macchiato",
     integrations = {
       blink_cmp = true,
       gitsigns = true,
@@ -22,8 +22,8 @@ if catppuccin then
     },
     custom_highlights = function(colors)
       return {
-        Comment = { fg = colors.overlay1, style = { "italic", "bold" } },
-        ["@comment"] = { fg = colors.overlay1, style = { "italic", "bold" } },
+        Comment = { fg = colors.overlay1, style = {  "bold" } },
+        ["@comment"] = { fg = colors.overlay1, style = {  "bold" } },
       }
     end,
   }
@@ -43,6 +43,46 @@ end
 local mini_bracketed = has "mini.bracketed"
 if mini_bracketed then
   mini_bracketed.setup()
+end
+
+local mini_starter = has "mini.starter"
+if mini_starter then
+  mini_starter.setup {
+    autoopen = false,
+    evaluate_single = true,
+    items = {
+      mini_starter.sections.builtin_actions(),
+      mini_starter.sections.recent_files(8, false, false),
+      mini_starter.sections.recent_files(8, true, false),
+    },
+    content_hooks = {
+      mini_starter.gen_hook.adding_bullet(),
+      mini_starter.gen_hook.aligning("center", "center"),
+    },
+  }
+
+  vim.api.nvim_create_autocmd("VimEnter", {
+    group = vim.api.nvim_create_augroup("UserMiniStarter", { clear = true }),
+    once = true,
+    callback = function()
+      if vim.fn.argc() > 0 then
+        return
+      end
+
+      local listed = vim.tbl_filter(function(buf)
+        return vim.bo[buf].buflisted
+      end, vim.api.nvim_list_bufs())
+      local current = vim.api.nvim_get_current_buf()
+      local is_empty = vim.api.nvim_buf_get_name(current) == ""
+        and vim.api.nvim_buf_line_count(current) == 1
+        and vim.api.nvim_buf_get_lines(current, 0, 1, false)[1] == ""
+
+      if #listed <= 1 and is_empty then
+        vim.bo[current].filetype = ""
+        mini_starter.open(current)
+      end
+    end,
+  })
 end
 
 local mini_move = has "mini.move"
@@ -67,21 +107,21 @@ if mini_statusline then
     use_icons = true,
     content = {
       active = function()
-        local mode, mode_hl = MiniStatusline.section_mode { trunc_width = 120 }
-        local git = MiniStatusline.section_git { trunc_width = 40, icon = "" }
-        local diff = MiniStatusline.section_diff { trunc_width = 75, icon = "" }
-        local diagnostics = MiniStatusline.section_diagnostics {
+        local mode, mode_hl = mini_statusline.section_mode { trunc_width = 120 }
+        local git = mini_statusline.section_git { trunc_width = 40, icon = "" }
+        local diff = mini_statusline.section_diff { trunc_width = 75, icon = "" }
+        local diagnostics = mini_statusline.section_diagnostics {
           trunc_width = 75,
           icon = "󰒡",
           signs = { ERROR = "", WARN = "", INFO = "", HINT = "󰌵" },
         }
-        local lsp = MiniStatusline.section_lsp { trunc_width = 75, icon = "" }
-        local filename = "󰈙 " .. MiniStatusline.section_filename { trunc_width = 140 }
-        local fileinfo = " " .. MiniStatusline.section_fileinfo { trunc_width = 120 }
-        local location = "󰍒 " .. MiniStatusline.section_location { trunc_width = 75 }
-        local search = MiniStatusline.section_searchcount { trunc_width = 75 }
+        local lsp = mini_statusline.section_lsp { trunc_width = 75, icon = "" }
+        local filename = "󰈙 " .. mini_statusline.section_filename { trunc_width = 140 }
+        local fileinfo = " " .. mini_statusline.section_fileinfo { trunc_width = 120 }
+        local location = "󰍒 " .. mini_statusline.section_location { trunc_width = 75 }
+        local search = mini_statusline.section_searchcount { trunc_width = 75 }
 
-        return MiniStatusline.combine_groups {
+        return mini_statusline.combine_groups {
           { hl = mode_hl, strings = { " " .. mode } },
           { hl = "UserStatusGit", strings = { git } },
           { hl = "UserStatusDiff", strings = { diff } },
@@ -100,6 +140,7 @@ end
 
 require("configs.highlights").setup()
 require("configs.tabline").setup()
+require "configs.autoread"
 
 local treesitter = has "nvim-treesitter.configs"
 if treesitter then
@@ -159,7 +200,12 @@ if nvim_tree then
     end
 
     local function open_in_work_window(node)
-      require("configs.buffers").pick_file_open_window()
+      node = node or api.tree.get_node_under_cursor()
+      if node and node.type ~= "file" then
+        api.node.open.edit(node)
+        return
+      end
+
       api.node.open.edit(node)
     end
 
@@ -185,11 +231,11 @@ if nvim_tree then
     actions = {
       open_file = {
         resize_window = false,
-          window_picker = {
-            enable = true,
-            picker = function()
-              return require("configs.buffers").pick_file_open_window()
-            end,
+        window_picker = {
+          enable = true,
+          picker = function()
+            return require("configs.buffers").pick_file_open_window()
+          end,
           exclude = {
             filetype = { "NvimTree", "notify", "lazy", "qf", "diff", "fugitive", "fugitiveblame" },
             buftype = { "nofile", "terminal", "help", "prompt", "quickfix" },
@@ -199,7 +245,8 @@ if nvim_tree then
     },
     renderer = {
       root_folder_label = false,
-      highlight_git = true,
+      highlight_git = "name",
+      highlight_modified = "name",
       indent_markers = { enable = true },
       icons = {
         glyphs = {
@@ -316,16 +363,7 @@ vim.api.nvim_create_autocmd("User", {
   group = lazygit_group,
   pattern = "LazyGitExit",
   callback = function()
-    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-      if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buftype == "" and not vim.bo[buf].modified then
-        local name = vim.api.nvim_buf_get_name(buf)
-        if name ~= "" and vim.fn.filereadable(name) == 1 then
-          vim.api.nvim_buf_call(buf, function()
-            vim.cmd "silent! checktime"
-          end)
-        end
-      end
-    end
+    require("configs.autoread").sync()
   end,
 })
 

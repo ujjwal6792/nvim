@@ -75,6 +75,24 @@ local function close_nvimtree_windows()
   end
 end
 
+local function open_dashboard(replace_buf)
+  local ok, starter = pcall(require, "mini.starter")
+  if ok then
+    local dashboard = vim.api.nvim_create_buf(false, true)
+    starter.open(dashboard)
+    if vim.api.nvim_buf_is_valid(replace_buf) then
+      pcall(vim.api.nvim_buf_delete, replace_buf, {})
+    end
+    return
+  end
+
+  vim.cmd "enew"
+  vim.bo.buflisted = false
+  if vim.api.nvim_buf_is_valid(replace_buf) then
+    pcall(vim.api.nvim_buf_delete, replace_buf, {})
+  end
+end
+
 function M.keep_nvimtree_width()
   vim.schedule(function()
     for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
@@ -150,7 +168,7 @@ function M.pick_file_open_window()
     return target
   end
 
-  vim.cmd "rightbelow vsplit"
+  vim.cmd "rightbelow vnew"
   M.keep_nvimtree_width()
   return vim.api.nvim_get_current_win()
 end
@@ -200,15 +218,7 @@ function M.close_current()
     vim.api.nvim_win_set_buf(current_win, target)
   else
     close_nvimtree_windows()
-
-    if #vim.api.nvim_tabpage_list_wins(0) > 1 then
-      vim.api.nvim_win_close(current_win, true)
-      pcall(vim.api.nvim_buf_delete, current, {})
-      M.keep_nvimtree_width()
-      return
-    end
-
-    vim.cmd.quit()
+    open_dashboard(current)
     return
   end
 
