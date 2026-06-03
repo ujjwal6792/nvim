@@ -12,6 +12,10 @@ local protected_buftypes = {
   help = true,
 }
 
+local function is_starter_buffer(buf)
+  return type(buf) == "number" and vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].filetype == "ministarter"
+end
+
 local function is_protected_buffer(buf)
   return protected_filetypes[vim.bo[buf].filetype] or protected_buftypes[vim.bo[buf].buftype]
 end
@@ -75,22 +79,43 @@ local function close_nvimtree_windows()
   end
 end
 
+local function starter_windows()
+  local wins = {}
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    if is_starter_buffer(buf) then
+      table.insert(wins, win)
+    end
+  end
+  return wins
+end
+
+local function close_starter_windows(except_win)
+  for _, win in ipairs(starter_windows()) do
+    if win ~= except_win and vim.api.nvim_win_is_valid(win) then
+      pcall(vim.api.nvim_win_close, win, true)
+    end
+  end
+end
+
+local function delete_buffer_if_valid(buf)
+  if type(buf) == "number" and vim.api.nvim_buf_is_valid(buf) then
+    pcall(vim.api.nvim_buf_delete, buf, {})
+  end
+end
+
 local function open_dashboard(replace_buf)
   local ok, starter = pcall(require, "mini.starter")
   if ok then
     local dashboard = vim.api.nvim_create_buf(false, true)
     starter.open(dashboard)
-    if vim.api.nvim_buf_is_valid(replace_buf) then
-      pcall(vim.api.nvim_buf_delete, replace_buf, {})
-    end
+    delete_buffer_if_valid(replace_buf)
     return
   end
 
   vim.cmd "enew"
   vim.bo.buflisted = false
-  if vim.api.nvim_buf_is_valid(replace_buf) then
-    pcall(vim.api.nvim_buf_delete, replace_buf, {})
-  end
+  delete_buffer_if_valid(replace_buf)
 end
 
 function M.keep_nvimtree_width()
@@ -134,9 +159,15 @@ function M.open_buffer(buf)
   end
 
   local current = vim.api.nvim_get_current_win()
+  local current_buf = vim.api.nvim_win_get_buf(current)
   local target = current
-  if is_protected_buffer(vim.api.nvim_win_get_buf(current)) then
+  if is_starter_buffer(current_buf) then
+    target = current
+  elseif is_protected_buffer(current_buf) then
     target = M.focus_work_window()
+    if not target then
+      target = starter_windows()[1]
+    end
   end
 
   if not target then
@@ -144,12 +175,21 @@ function M.open_buffer(buf)
   end
 
   vim.api.nvim_set_current_win(target)
+  local replaced = vim.api.nvim_win_get_buf(target)
   vim.api.nvim_win_set_buf(target, buf)
+  close_starter_windows(target)
+  if is_starter_buffer(replaced) then
+    delete_buffer_if_valid(replaced)
+  end
   M.keep_nvimtree_width()
 end
 
 function M.pick_work_window()
   local current = vim.api.nvim_get_current_win()
+  if is_starter_buffer(vim.api.nvim_win_get_buf(current)) then
+    return current
+  end
+
   if not is_protected_buffer(vim.api.nvim_win_get_buf(current)) then
     return current
   end
@@ -157,6 +197,11 @@ function M.pick_work_window()
   local wins = work_windows()
   if #wins > 0 then
     return wins[1]
+  end
+
+  local starter = starter_windows()[1]
+  if starter then
+    return starter
   end
 
   M.keep_nvimtree_width()
