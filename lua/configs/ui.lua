@@ -59,6 +59,7 @@ if mini_starter then
       mini_starter.gen_hook.adding_bullet(),
       mini_starter.gen_hook.aligning("center", "center"),
     },
+    query_updaters = "",
   }
 
   vim.api.nvim_create_autocmd("VimEnter", {
