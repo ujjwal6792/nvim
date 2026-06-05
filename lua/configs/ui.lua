@@ -52,6 +52,11 @@ if mini_starter then
     evaluate_single = true,
     items = {
       mini_starter.sections.builtin_actions(),
+      function()
+        return {
+          { name = "Restore Session", action = "AutoSession restore", section = "Session" },
+        }
+      end,
       mini_starter.sections.recent_files(8, false, false),
       mini_starter.sections.recent_files(8, true, false),
     },
@@ -428,9 +433,29 @@ if auto_session then
   end
 
   auto_session.setup {
+    auto_restore = false,
+    auto_restore_enabled = false,
+    close_filetypes_on_save = { "NvimTree", "terminal" },
     cwd_change_handling = false,
     suppressed_dirs = { "~/" },
-    post_restore_cmds = { restore_launch_cwd },
+    post_restore_cmds = {
+      restore_launch_cwd,
+      function()
+        local cwd = vim.fn.getcwd()
+        local cwd_prefix = vim.fn.fnamemodify(cwd, ":p")
+        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+          if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buflisted then
+            local name = vim.api.nvim_buf_get_name(buf)
+            if name ~= "" and vim.bo[buf].buftype == "" then
+              local abs_path = vim.fn.fnamemodify(name, ":p")
+              if abs_path:sub(1, #cwd_prefix) ~= cwd_prefix then
+                vim.api.nvim_buf_delete(buf, { force = true })
+              end
+            end
+          end
+        end
+      end,
+    },
     no_restore_cmds = {
       function()
         restore_launch_cwd()

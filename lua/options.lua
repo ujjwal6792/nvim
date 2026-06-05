@@ -49,7 +49,7 @@ opt.foldmethod = "expr"
 opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
 opt.shortmess:append "sI"
 opt.signcolumn = "yes"
-opt.sessionoptions = "blank,buffers,folds,help,tabpages,winsize,winpos,terminal,localoptions"
+opt.sessionoptions = "blank,buffers,folds,help,tabpages,winsize,winpos,localoptions"
 opt.splitbelow = true
 opt.splitright = true
 opt.termguicolors = true

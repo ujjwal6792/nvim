@@ -67,7 +67,7 @@ end
 local function listed_buffers()
   local buffers = {}
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-    if vim.bo[buf].buflisted and vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].filetype ~= "NvimTree" then
+    if vim.bo[buf].buflisted and vim.bo[buf].filetype ~= "NvimTree" then
       table.insert(buffers, buf)
     end
   end

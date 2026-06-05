@@ -27,7 +27,11 @@ local pos_data = {
 }
 
 local function is_work_window(win)
-  local buf = api.nvim_win_get_buf(win)
+  local target_win = (win == 0 or win == nil) and api.nvim_get_current_win() or win
+  if not api.nvim_win_is_valid(target_win) then
+    return false
+  end
+  local buf = api.nvim_win_get_buf(target_win)
   return vim.bo[buf].buftype == "" and vim.bo[buf].filetype ~= "NvimTree"
 end
 
@@ -37,7 +41,17 @@ local function focus_work_window()
   end
 
   for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
-    if is_work_window(win) then
+    if is_work_window(win) and (api.nvim_win_get_config(win).relative or "") == "" then
+      api.nvim_set_current_win(win)
+      return
+    end
+  end
+
+  for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
+    local buf = api.nvim_win_get_buf(win)
+    local ft = vim.bo[buf].filetype
+    local rel = api.nvim_win_get_config(win).relative or ""
+    if ft ~= "NvimTree" and rel == "" then
       api.nvim_set_current_win(win)
       return
     end
@@ -108,12 +122,25 @@ end
 
 function M.toggle(opts)
   local current = terms[opts.id]
-  opts.buf = current and current.buf or nil
+  local is_target_visible = current and current.buf and api.nvim_buf_is_valid(current.buf) and vim.fn.bufwinid(current.buf) ~= -1
 
-  if not current or not api.nvim_buf_is_valid(current.buf) or vim.fn.bufwinid(current.buf) == -1 then
+  for id, term in pairs(terms) do
+    if id ~= opts.id then
+      local win = term.buf and api.nvim_buf_is_valid(term.buf) and vim.fn.bufwinid(term.buf) or -1
+      if win ~= -1 and api.nvim_win_is_valid(win) then
+        pcall(api.nvim_win_close, win, true)
+      end
+    end
+  end
+
+  if is_target_visible then
+    local win = vim.fn.bufwinid(current.buf)
+    if win ~= -1 and api.nvim_win_is_valid(win) then
+      pcall(api.nvim_win_close, win, true)
+    end
+  else
+    opts.buf = current and current.buf or nil
     create(opts)
-  elseif current.win and api.nvim_win_is_valid(current.win) then
-    api.nvim_win_close(current.win, true)
   end
 end
 
