@@ -8,7 +8,21 @@ end
 local catppuccin = has "catppuccin"
 if catppuccin then
   catppuccin.setup {
-    flavour = "macchiato",
+    flavour = "mocha",
+    styles = {
+      comments = { "italic" },
+      conditionals = { "italic" },
+      loops = {},
+      functions = {},
+      keywords = { "italic" },
+      strings = {},
+      variables = {},
+      numbers = {},
+      booleans = {},
+      properties = {},
+      types = {},
+      operators = {},
+    },
     integrations = {
       blink_cmp = true,
       gitsigns = true,
@@ -22,8 +36,35 @@ if catppuccin then
     },
     custom_highlights = function(colors)
       return {
-        Comment = { fg = colors.overlay1, style = {  "bold" } },
-        ["@comment"] = { fg = colors.overlay1, style = {  "bold" } },
+        Comment = { fg = colors.overlay1, style = { "italic" } },
+        ["@comment"] = { fg = colors.overlay1, style = { "italic" } },
+        ["@function"] = { fg = colors.blue, style = { "bold" } },
+        ["@function.builtin"] = { fg = colors.blue, style = { "bold", "italic" } },
+        ["@function.call"] = { fg = colors.blue, style = { "bold" } },
+        ["@keyword"] = { fg = colors.mauve, style = { "italic" } },
+        ["@keyword.function"] = { fg = colors.mauve, style = { "italic" } },
+        ["@conditional"] = { fg = colors.mauve, style = { "italic" } },
+        ["@repeat"] = { fg = colors.mauve, style = { "italic" } },
+        ["@parameter"] = { fg = colors.maroon, style = { "italic" } },
+        ["@variable"] = { fg = colors.text },
+        ["@variable.builtin"] = { fg = colors.red, style = { "italic" } },
+        ["@variable.member"] = { fg = colors.teal },
+        ["@property"] = { fg = colors.teal },
+        ["@field"] = { fg = colors.teal },
+        ["@constant"] = { fg = colors.peach, style = { "bold" } },
+        ["@constant.builtin"] = { fg = colors.peach, style = { "bold", "italic" } },
+        ["@number"] = { fg = colors.peach },
+        ["@boolean"] = { fg = colors.peach, style = { "bold" } },
+        ["@string"] = { fg = colors.green },
+        ["@string.regex"] = { fg = colors.peach },
+        ["@type"] = { fg = colors.yellow },
+        ["@type.builtin"] = { fg = colors.yellow, style = { "italic" } },
+        ["@operator"] = { fg = colors.sky },
+        ["@punctuation.bracket"] = { fg = colors.overlay2 },
+        ["@punctuation.delimiter"] = { fg = colors.overlay2 },
+        ["@tag"] = { fg = colors.red },
+        ["@tag.attribute"] = { fg = colors.yellow, style = { "italic" } },
+        ["@tag.delimiter"] = { fg = colors.sky },
       }
     end,
   }
@@ -84,8 +125,11 @@ if mini_starter then
         and vim.api.nvim_buf_get_lines(current, 0, 1, false)[1] == ""
 
       if #listed <= 1 and is_empty then
-        vim.bo[current].filetype = ""
-        mini_starter.open(current)
+        local dashboard = vim.api.nvim_create_buf(false, true)
+        mini_starter.open(dashboard)
+        if type(current) == "number" and vim.api.nvim_buf_is_valid(current) then
+          pcall(vim.api.nvim_buf_delete, current, {})
+        end
       end
     end,
   })

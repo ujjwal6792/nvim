@@ -17,31 +17,35 @@ local function get_palette()
     subtext0 = "#a6adc8",
     overlay0 = "#6c7086",
     overlay1 = "#7f849c",
-    active = "#191825",
     green = "#a6e3a1",
     rosewater = "#f5e0dc",
     red = "#f38ba8",
     peach = "#fab387",
     yellow = "#f9e2af",
+    blue = "#89b4fa",
+    mauve = "#cba6f7",
+    teal = "#94e2d5",
+    lavender = "#b4befe",
   }
 end
 
 function M.apply_highlights()
   local c = get_palette()
-  local active_bg = c.active or "#191825"
-  local active_fg = "#cecece"
+  local active_bg = c.base
+  local active_fg = c.peach
+  local active_modified_fg = c.yellow
 
   vim.api.nvim_set_hl(0, "UserTablineTree", { fg = c.surface2, bg = c.mantle })
-  vim.api.nvim_set_hl(0, "UserTablineFill", { fg = c.overlay0, bg = c.base })
-  vim.api.nvim_set_hl(0, "UserTablineCurrent", { fg = active_fg, bg = active_bg, bold = true, italic = false })
-  vim.api.nvim_set_hl(0, "UserTablineVisible", { fg = c.text, bg = c.surface1, italic = false })
-  vim.api.nvim_set_hl(0, "UserTablineHidden", { fg = c.subtext0, bg = c.surface0, italic = false })
-  vim.api.nvim_set_hl(0, "UserTablineModified", { fg = c.yellow, bg = c.surface1, bold = true, italic = false })
-  vim.api.nvim_set_hl(0, "UserTablineModifiedCurrent", { fg = active_fg, bg = active_bg, bold = true, italic = false })
-  vim.api.nvim_set_hl(0, "UserTablineFaded", { fg = c.overlay1, bg = c.mantle, italic = false })
-  vim.api.nvim_set_hl(0, "UserTablineModifiedFaded", { fg = c.overlay1, bg = c.mantle, bold = true, italic = false })
-  vim.api.nvim_set_hl(0, "UserTablineSeparator", { fg = c.base, bg = c.base })
-  vim.api.nvim_set_hl(0, "UserTablineClose", { fg = active_fg, bg = active_bg, bold = true })
+  vim.api.nvim_set_hl(0, "UserTablineFill", { fg = c.overlay0, bg = c.crust })
+  vim.api.nvim_set_hl(0, "UserTablineCurrent", { fg = active_fg, bg = active_bg, bold = true })
+  vim.api.nvim_set_hl(0, "UserTablineVisible", { fg = c.text, bg = c.surface0 })
+  vim.api.nvim_set_hl(0, "UserTablineHidden", { fg = c.subtext0, bg = c.mantle })
+  vim.api.nvim_set_hl(0, "UserTablineModified", { fg = c.yellow, bg = c.mantle, bold = true })
+  vim.api.nvim_set_hl(0, "UserTablineModifiedCurrent", { fg = active_modified_fg, bg = active_bg, bold = true })
+  vim.api.nvim_set_hl(0, "UserTablineFaded", { fg = c.overlay1, bg = c.crust })
+  vim.api.nvim_set_hl(0, "UserTablineModifiedFaded", { fg = c.overlay1, bg = c.crust, bold = true })
+  vim.api.nvim_set_hl(0, "UserTablineSeparator", { fg = c.crust, bg = c.crust })
+  vim.api.nvim_set_hl(0, "UserTablineClose", { fg = c.red, bg = active_bg, bold = true })
   vim.api.nvim_set_hl(0, "UserTablineAccent", { fg = c.rosewater, bg = c.surface0, bold = true })
 end
 
