@@ -262,8 +262,53 @@ function M.close_current()
   if target then
     vim.api.nvim_win_set_buf(current_win, target)
   else
-    close_nvimtree_windows()
-    open_dashboard(current)
+    local nvim_wins = nvimtree_windows()
+    if #nvim_wins == 0 then
+      open_dashboard(current)
+      return
+    end
+
+    delete_buffer_if_valid(current)
+    vim.api.nvim_set_current_win(nvim_wins[1])
+
+    local timer = vim.uv.new_timer()
+    local closed = false
+
+    local function cleanup()
+      if closed then return end
+      closed = true
+      if timer and not timer:is_closing() then
+        timer:stop()
+        timer:close()
+      end
+    end
+
+    local timer_cb = vim.schedule_wrap(function()
+      if closed then return end
+      cleanup()
+      close_nvimtree_windows()
+      open_dashboard(current)
+    end)
+
+    vim.schedule(function()
+      local nvim_buf = vim.api.nvim_win_get_buf(nvim_wins[1])
+      vim.api.nvim_create_autocmd("CursorMoved", {
+        buffer = nvim_buf,
+        callback = function()
+          if closed then return end
+          if timer and not timer:is_closing() then
+            timer:stop()
+            timer:start(5000, 0, timer_cb)
+          end
+        end,
+      })
+      vim.api.nvim_create_autocmd("BufEnter", {
+        callback = cleanup,
+        once = true,
+      })
+    end)
+
+    timer:start(2000, 0, timer_cb)
     return
   end
 
