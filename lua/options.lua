@@ -2,7 +2,7 @@ local opt = vim.opt
 local o = vim.o
 local g = vim.g
 
-if vim.lsp and vim.lsp.get_client_by_id then
+if vim.lsp then
   vim.lsp.get_buffers_by_client_id = function(client_id)
     local client = vim.lsp.get_client_by_id(client_id)
     if not client or not client.attached_buffers then

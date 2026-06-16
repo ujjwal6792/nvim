@@ -6,6 +6,7 @@ _G.dump = function(...)
 end
 
 require "options"
+require "autocwd"
 require "configs.pack"
 require "configs.ui"
 require "configs.conform"
