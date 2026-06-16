@@ -2,21 +2,7 @@ local opt = vim.opt
 local o = vim.o
 local g = vim.g
 
-if vim.lsp then
-  vim.lsp.get_buffers_by_client_id = function(client_id)
-    local client = vim.lsp.get_client_by_id(client_id)
-    if not client or not client.attached_buffers then
-      return {}
-    end
-
-    local buffers = vim.tbl_keys(client.attached_buffers)
-    table.sort(buffers)
-    return buffers
-  end
-end
-
 g.launch_cwd = vim.uv.cwd()
-
 o.laststatus = 3
 o.showmode = false
 o.splitkeep = "screen"

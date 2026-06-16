@@ -160,11 +160,16 @@ if mini_statusline then
         local mode, mode_hl = mini_statusline.section_mode { trunc_width = 120 }
         local git = mini_statusline.section_git { trunc_width = 40, icon = "" }
         local diff = mini_statusline.section_diff { trunc_width = 75, icon = "" }
-        local diagnostics = mini_statusline.section_diagnostics {
-          trunc_width = 75,
-          icon = "󰒡",
-          signs = { ERROR = "", WARN = "", INFO = "", HINT = "󰌵" },
-        }
+        local diag = vim.diagnostic.count(0)
+        local function severity_text(sev, icon)
+          local n = diag[sev] or 0
+          return n > 0 and (icon .. " " .. n) or ""
+        end
+
+        local err_str = severity_text(vim.diagnostic.severity.ERROR, "")
+        local warn_str = severity_text(vim.diagnostic.severity.WARN, "")
+        local info_str = severity_text(vim.diagnostic.severity.INFO, "")
+        local hint_str = severity_text(vim.diagnostic.severity.HINT, "󰌵")
         local lsp = mini_statusline.section_lsp { trunc_width = 75, icon = "" }
         local filename = "󰈙 " .. mini_statusline.section_filename { trunc_width = 140 }
         local fileinfo = " " .. mini_statusline.section_fileinfo { trunc_width = 120 }
@@ -175,7 +180,10 @@ if mini_statusline then
           { hl = mode_hl, strings = { " " .. mode } },
           { hl = "UserStatusGit", strings = { git } },
           { hl = "UserStatusDiff", strings = { diff } },
-          { hl = "UserStatusDiag", strings = { diagnostics } },
+          { hl = "UserStatusError", strings = { err_str } },
+          { hl = "UserStatusWarn", strings = { warn_str } },
+          { hl = "UserStatusInfo", strings = { info_str } },
+          { hl = "UserStatusHint", strings = { hint_str } },
           { hl = "UserStatusLsp", strings = { lsp } },
           "%<",
           { hl = "MiniStatuslineFilename", strings = { filename } },

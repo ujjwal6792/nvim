@@ -69,7 +69,10 @@ function M.apply()
   -- Statusline sub-components
   vim.api.nvim_set_hl(0, "UserStatusGit", { fg = c.flamingo, bg = c.surface0, bold = true })
   vim.api.nvim_set_hl(0, "UserStatusDiff", { fg = c.rosewater, bg = c.surface0, bold = true })
-  vim.api.nvim_set_hl(0, "UserStatusDiag", { fg = c.red, bg = c.surface0, bold = true })
+  vim.api.nvim_set_hl(0, "UserStatusError", { fg = c.red, bg = c.surface0, bold = true })
+  vim.api.nvim_set_hl(0, "UserStatusWarn", { fg = c.yellow, bg = c.surface0, bold = true })
+  vim.api.nvim_set_hl(0, "UserStatusInfo", { fg = c.blue, bg = c.surface0, bold = true })
+  vim.api.nvim_set_hl(0, "UserStatusHint", { fg = c.teal, bg = c.surface0, bold = true })
   vim.api.nvim_set_hl(0, "UserStatusLsp", { fg = c.mauve, bg = c.surface0, bold = true })
   
   -- UI Borders and popups
