@@ -4,7 +4,7 @@ function source.new(opts)
   local self = setmetatable({}, { __index = source })
   self.opts = vim.tbl_deep_extend("force", {
     max_entries = 200,
-    show_hidden = false,
+    show_hidden = true,
   }, opts or {})
   return self
 end
