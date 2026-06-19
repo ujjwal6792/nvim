@@ -38,78 +38,79 @@ end
 function M.apply()
   local c = palette()
 
-  -- General UI overrides for a modern, flat, poppy look
-  vim.api.nvim_set_hl(0, "Normal", { fg = c.text, bg = c.base })
-  vim.api.nvim_set_hl(0, "NormalNC", { fg = c.text, bg = c.base })
+  -- General UI overrides for a darker frosted glass look
+  vim.api.nvim_set_hl(0, "Normal", { fg = c.text, bg = NONE })
+  vim.api.nvim_set_hl(0, "NormalNC", { fg = c.text, bg = NONE })
   vim.api.nvim_set_hl(0, "CursorLine", { bg = c.surface0 })
   vim.api.nvim_set_hl(0, "CursorLineNr", { fg = c.peach, bold = true }) -- Warm peach for current line number
   vim.api.nvim_set_hl(0, "LineNr", { fg = c.overlay0 })
-  vim.api.nvim_set_hl(0, "WinSeparator", { fg = c.surface1, bg = c.base })
+  vim.api.nvim_set_hl(0, "WinSeparator", { fg = c.surface1, bg = NONE })
   vim.api.nvim_set_hl(0, "Visual", { bg = c.surface1 })
   vim.api.nvim_set_hl(0, "Search", { fg = c.crust, bg = c.yellow, bold = true })
   vim.api.nvim_set_hl(0, "IncSearch", { fg = c.crust, bg = c.pink, bold = true }) -- Pink accent for incsearch
 
-  -- Statusline
-  vim.api.nvim_set_hl(0, "StatusLine", { fg = c.text, bg = c.surface0, italic = false })
-  vim.api.nvim_set_hl(0, "StatusLineNC", { fg = c.subtext0, bg = c.mantle, italic = false })
-  
-  -- Soothing and poppy warm statusline mode colors (no cold blue/teal)
+  -- Statusline (frosted glass: transparent bg)
+  vim.api.nvim_set_hl(0, "StatusLine", { fg = c.text, bg = NONE, italic = false })
+  vim.api.nvim_set_hl(0, "StatusLineNC", { fg = c.subtext0, bg = NONE, italic = false })
+
+  -- Soothing mode colors (frosted glass: deeper backgrounds)
   vim.api.nvim_set_hl(0, "MiniStatuslineModeNormal", { fg = c.crust, bg = c.peach, bold = true, italic = false })
   vim.api.nvim_set_hl(0, "MiniStatuslineModeInsert", { fg = c.crust, bg = c.pink, bold = true, italic = false })
   vim.api.nvim_set_hl(0, "MiniStatuslineModeVisual", { fg = c.crust, bg = c.mauve, bold = true, italic = false })
   vim.api.nvim_set_hl(0, "MiniStatuslineModeReplace", { fg = c.crust, bg = c.red, bold = true, italic = false })
   vim.api.nvim_set_hl(0, "MiniStatuslineModeCommand", { fg = c.crust, bg = c.yellow, bold = true, italic = false })
   vim.api.nvim_set_hl(0, "MiniStatuslineModeOther", { fg = c.crust, bg = c.flamingo, bold = true, italic = false })
-  
-  vim.api.nvim_set_hl(0, "MiniStatuslineDevinfo", { fg = c.subtext1, bg = c.surface0, italic = false })
-  vim.api.nvim_set_hl(0, "MiniStatuslineFilename", { fg = c.text, bg = c.surface1, bold = true, italic = false })
-  vim.api.nvim_set_hl(0, "MiniStatuslineFileinfo", { fg = c.subtext1, bg = c.surface0, italic = false })
-  vim.api.nvim_set_hl(0, "MiniStatuslineInactive", { fg = c.subtext0, bg = c.mantle, italic = false })
-  
-  -- Statusline sub-components
-  vim.api.nvim_set_hl(0, "UserStatusGit", { fg = c.flamingo, bg = c.surface0, bold = true })
-  vim.api.nvim_set_hl(0, "UserStatusDiff", { fg = c.rosewater, bg = c.surface0, bold = true })
-  vim.api.nvim_set_hl(0, "UserStatusError", { fg = c.red, bg = c.surface0, bold = true })
-  vim.api.nvim_set_hl(0, "UserStatusWarn", { fg = c.yellow, bg = c.surface0, bold = true })
-  vim.api.nvim_set_hl(0, "UserStatusInfo", { fg = c.blue, bg = c.surface0, bold = true })
-  vim.api.nvim_set_hl(0, "UserStatusHint", { fg = c.teal, bg = c.surface0, bold = true })
-  vim.api.nvim_set_hl(0, "UserStatusLsp", { fg = c.mauve, bg = c.surface0, bold = true })
-  
-  -- UI Borders and popups
-  vim.api.nvim_set_hl(0, "FloatBorder", { fg = c.pink, bg = c.base })
-  vim.api.nvim_set_hl(0, "NormalFloat", { fg = c.text, bg = c.base })
-  vim.api.nvim_set_hl(0, "Pmenu", { fg = c.text, bg = c.surface0 })
+
+  vim.api.nvim_set_hl(0, "MiniStatuslineDevinfo", { fg = c.subtext1, bg = NONE, italic = false })
+  vim.api.nvim_set_hl(0, "MiniStatuslineFilename", { fg = c.text, bg = NONE, bold = true, italic = false })
+  vim.api.nvim_set_hl(0, "MiniStatuslineFileinfo", { fg = c.subtext1, bg = NONE, italic = false })
+  vim.api.nvim_set_hl(0, "MiniStatuslineInactive", { fg = c.subtext0, bg = NONE, italic = false })
+
+  -- Statusline sub-components (frosted glass: transparent bg)
+  vim.api.nvim_set_hl(0, "UserStatusGit", { fg = c.flamingo, bg = NONE, bold = true })
+  vim.api.nvim_set_hl(0, "UserStatusDiff", { fg = c.rosewater, bg = NONE, bold = true })
+  vim.api.nvim_set_hl(0, "UserStatusError", { fg = c.red, bg = NONE, bold = true })
+  vim.api.nvim_set_hl(0, "UserStatusWarn", { fg = c.yellow, bg = NONE, bold = true })
+  vim.api.nvim_set_hl(0, "UserStatusInfo", { fg = c.blue, bg = NONE, bold = true })
+  vim.api.nvim_set_hl(0, "UserStatusHint", { fg = c.teal, bg = NONE, bold = true })
+  vim.api.nvim_set_hl(0, "UserStatusLsp", { fg = c.mauve, bg = NONE, bold = true })
+
+  -- UI Borders and popups (frosted glass: darker backgrounds + blend)
+  vim.api.nvim_set_hl(0, "FloatBorder", { fg = c.pink, bg = c.mantle })
+  vim.api.nvim_set_hl(0, "NormalFloat", { fg = c.text, bg = c.mantle })
+  vim.api.nvim_set_hl(0, "Pmenu", { fg = c.text, bg = c.mantle })
   vim.api.nvim_set_hl(0, "PmenuSel", { fg = c.crust, bg = c.pink, bold = true })
-  
-  -- Blink.cmp highlights (consistency with Pmenu)
-  vim.api.nvim_set_hl(0, "BlinkCmpMenu", { fg = c.text, bg = c.surface0 })
-  vim.api.nvim_set_hl(0, "BlinkCmpMenuBorder", { fg = c.surface1, bg = c.surface0 })
-  vim.api.nvim_set_hl(0, "BlinkCmpDoc", { fg = c.text, bg = c.mantle })
-  vim.api.nvim_set_hl(0, "BlinkCmpDocBorder", { fg = c.surface1, bg = c.mantle })
+
+  -- Blink.cmp (darker frosted glass)
+  vim.api.nvim_set_hl(0, "BlinkCmpMenu", { fg = c.text, bg = c.mantle })
+  vim.api.nvim_set_hl(0, "BlinkCmpMenuBorder", { fg = c.surface1, bg = c.mantle })
+  vim.api.nvim_set_hl(0, "BlinkCmpDoc", { fg = c.text, bg = c.crust })
+  vim.api.nvim_set_hl(0, "BlinkCmpDocBorder", { fg = c.surface1, bg = c.crust })
   vim.api.nvim_set_hl(0, "BlinkCmpLabel", { fg = c.text })
   vim.api.nvim_set_hl(0, "BlinkCmpLabelMatch", { fg = c.peach, bold = true })
   vim.api.nvim_set_hl(0, "BlinkCmpKind", { fg = c.mauve })
 
-  -- Telescope (NvChad/AstroNvim borderless flat blocks)
-  vim.api.nvim_set_hl(0, "TelescopeNormal", { fg = c.text, bg = c.mantle })
-  vim.api.nvim_set_hl(0, "TelescopeBorder", { fg = c.mantle, bg = c.mantle })
-  
-  vim.api.nvim_set_hl(0, "TelescopePromptNormal", { fg = c.text, bg = c.surface0 })
-  vim.api.nvim_set_hl(0, "TelescopePromptBorder", { fg = c.surface0, bg = c.surface0 })
-  vim.api.nvim_set_hl(0, "TelescopePromptPrefix", { fg = c.peach, bg = c.surface0 })
-  
-  vim.api.nvim_set_hl(0, "TelescopePreviewNormal", { fg = c.text, bg = c.crust })
-  vim.api.nvim_set_hl(0, "TelescopePreviewBorder", { fg = c.crust, bg = c.crust })
-  
+  -- Telescope (frosted glass: deeper backgrounds)
+  vim.api.nvim_set_hl(0, "TelescopeNormal", { fg = c.text, bg = c.crust })
+  vim.api.nvim_set_hl(0, "TelescopeBorder", { fg = c.crust, bg = c.crust })
+
+  vim.api.nvim_set_hl(0, "TelescopePromptNormal", { fg = c.text, bg = c.mantle })
+  vim.api.nvim_set_hl(0, "TelescopePromptBorder", { fg = c.mantle, bg = c.mantle })
+  vim.api.nvim_set_hl(0, "TelescopePromptPrefix", { fg = c.peach, bg = c.mantle })
+
+  vim.api.nvim_set_hl(0, "TelescopePreviewNormal", { fg = c.text, bg = "#0d0d17" })
+  vim.api.nvim_set_hl(0, "TelescopePreviewBorder", { fg = "#0d0d17", bg = "#0d0d17" })
+
   vim.api.nvim_set_hl(0, "TelescopeSelection", { fg = c.peach, bg = c.surface1, bold = true })
   vim.api.nvim_set_hl(0, "TelescopeSelectionCaret", { fg = c.peach, bg = c.surface1 })
   vim.api.nvim_set_hl(0, "TelescopeMatching", { fg = c.pink, bold = true })
-  
+
   vim.api.nvim_set_hl(0, "TelescopePromptTitle", { fg = c.crust, bg = c.pink, bold = true })
   vim.api.nvim_set_hl(0, "TelescopeResultsTitle", { fg = c.crust, bg = c.peach, bold = true })
   vim.api.nvim_set_hl(0, "TelescopePreviewTitle", { fg = c.crust, bg = c.mauve, bold = true })
-  
-  -- NvimTree with warm folder styling and git statuses
+
+  -- NvimTree (frosted glass sidebar)
+  vim.api.nvim_set_hl(0, "NvimTreeNormal", { fg = c.text, bg = NONE })
   vim.api.nvim_set_hl(0, "NvimTreeRootFolder", { fg = c.pink, bold = true })
   vim.api.nvim_set_hl(0, "NvimTreeFolderName", { fg = c.peach })
   vim.api.nvim_set_hl(0, "NvimTreeEmptyFolderName", { fg = c.peach })
@@ -139,28 +140,28 @@ function M.apply()
   vim.api.nvim_set_hl(0, "NvimTreeGitDeletedIcon", { fg = c.red })
   vim.api.nvim_set_hl(0, "NvimTreeGitFileDeletedHL", { fg = c.red })
   vim.api.nvim_set_hl(0, "NvimTreeGitFolderDeletedHL", { fg = c.red })
-  
+
   -- WhichKey (Warm styling)
   vim.api.nvim_set_hl(0, "WhichKey", { fg = c.peach, bold = true })
   vim.api.nvim_set_hl(0, "WhichKeyDesc", { fg = c.text })
   vim.api.nvim_set_hl(0, "WhichKeyGroup", { fg = c.mauve })
   vim.api.nvim_set_hl(0, "WhichKeySeparator", { fg = c.overlay0 })
 
-  -- Mason (Consistent theme colors)
+  -- Mason (frosted glass: deeper backgrounds)
   vim.api.nvim_set_hl(0, "MasonHeader", { fg = c.crust, bg = c.pink, bold = true })
   vim.api.nvim_set_hl(0, "MasonHighlight", { fg = c.pink })
   vim.api.nvim_set_hl(0, "MasonHighlightBlock", { fg = c.crust, bg = c.pink })
   vim.api.nvim_set_hl(0, "MasonHighlightBlockSecondary", { fg = c.crust, bg = c.peach })
   vim.api.nvim_set_hl(0, "MasonMuted", { fg = c.overlay1 })
-  vim.api.nvim_set_hl(0, "MasonMutedBlock", { fg = c.text, bg = c.surface0 })
+  vim.api.nvim_set_hl(0, "MasonMutedBlock", { fg = c.text, bg = c.mantle })
 
-  -- mini.starter beautiful highlights with high-contrast active item readable selection
+  -- mini.starter (frosted glass)
   vim.api.nvim_set_hl(0, "MiniStarterHeader", { fg = c.pink, bold = true })
   vim.api.nvim_set_hl(0, "MiniStarterSection", { fg = c.mauve, bold = true })
   vim.api.nvim_set_hl(0, "MiniStarterItem", { fg = c.text })
   vim.api.nvim_set_hl(0, "MiniStarterItemBullet", { fg = c.peach })
   vim.api.nvim_set_hl(0, "MiniStarterQuery", { fg = c.pink, bold = true })
-  vim.api.nvim_set_hl(0, "MiniStarterCurrent", { fg = c.pink, bg = c.surface1, bold = true })
+  vim.api.nvim_set_hl(0, "MiniStarterCurrent", { fg = c.pink, bg = c.surface0, bold = true })
 end
 
 function M.setup()

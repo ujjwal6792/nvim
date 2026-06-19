@@ -9,6 +9,7 @@ local catppuccin = has "catppuccin"
 if catppuccin then
   catppuccin.setup {
     flavour = "mocha",
+    transparent_background = true,
     styles = {
       comments = { "italic" },
       conditionals = { "italic" },
@@ -36,6 +37,8 @@ if catppuccin then
     },
     custom_highlights = function(colors)
       return {
+        NormalFloat = { fg = colors.text, bg = colors.mantle },
+        FloatBorder = { fg = colors.blue, bg = colors.mantle },
         Comment = { fg = colors.overlay1, style = { "italic" } },
         ["@comment"] = { fg = colors.overlay1, style = { "italic" } },
         ["@function"] = { fg = colors.blue, style = { "bold" } },

@@ -40,6 +40,7 @@ opt.splitbelow = true
 opt.splitright = true
 opt.termguicolors = true
 opt.timeoutlen = 400
+opt.winblend = 10
 opt.undofile = true
 opt.swapfile = false
 opt.updatetime = 150
