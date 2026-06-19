@@ -156,6 +156,15 @@ map("n", "<leader>mh=", "<cmd>Heading increase<CR>", { desc = "markdown heading 
 map("n", "<leader>mn", function()
   require("notes").open_notes()
 end, { desc = "open notes" })
+map("n", "<leader>mt", function()
+  require("notes").open_tags()
+end, { desc = "notes: tag browser" })
+map("n", "<leader>mk", function()
+  require("notes").open_tasks()
+end, { desc = "notes: task list" })
+map("n", "<leader>mb", function()
+  require("notes").open_backlinks()
+end, { desc = "notes: backlinks" })
 
 local cargo_toml = fn.getcwd() .. "/Cargo.toml"
 if vim.uv.fs_stat(cargo_toml) then

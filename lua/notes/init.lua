@@ -12,6 +12,64 @@ local previewers = require "telescope.previewers"
 local notes_dir = vim.fn.expand "~/notes"
 local created_notes = {}
 
+local config = {
+  auto_rename   = true,  -- rename date-filename to slugified heading on write
+  empty_cleanup = true,  -- delete empty tracked notes on buffer close or exit
+  zen_tags      = true,  -- tag list/find via zen CLI (fallback: disabled)
+  zen_tasks     = true,  -- global task list/toggle via zen CLI (fallback: grep)
+  zen_backlinks = true,  -- backlinks lookup via zen CLI (fallback: grep)
+  zen_archive   = true,  -- archive/trash/restore via zen CLI (fallback: hard delete)
+}
+
+function M.setup(opts)
+  config = vim.tbl_deep_extend("force", config, opts or {})
+end
+
+--------------------------------------------------
+-- zen CLI helper
+--------------------------------------------------
+local zen_bin = vim.fn.expand "~/.local/bin/zen"
+local zen_env = { "ZENNOTES_VAULT=" .. notes_dir }
+
+local function zen_available()
+  return vim.uv.fs_stat(zen_bin) ~= nil
+end
+
+--- Run zen synchronously, return decoded JSON or nil on error.
+local function zen_json(args)
+  if not zen_available() then
+    return nil
+  end
+  local cmd = table.concat(
+    vim.iter({ zen_bin, table.unpack(args), "--json", "--no-color" }):totable(),
+    " "
+  )
+  -- prepend env
+  local env_str = table.concat(zen_env, " ")
+  local out = vim.fn.system(env_str .. " " .. cmd)
+  if vim.v.shell_error ~= 0 then
+    return nil
+  end
+  local ok, decoded = pcall(vim.fn.json_decode, out)
+  return ok and decoded or nil
+end
+
+--- Run zen fire-and-forget (no output needed).
+local function zen_run(args)
+  if not zen_available() then
+    return false
+  end
+  local cmd = vim.iter({ zen_bin, table.unpack(args), "--no-color" }):totable()
+  local env_str = table.concat(zen_env, " ")
+  vim.fn.system(env_str .. " " .. table.concat(cmd, " "))
+  return vim.v.shell_error == 0
+end
+
+--- Relative path from notes_dir, usable by zen CLI commands.
+local function zen_rel(abs_path)
+  return Path:new(abs_path):make_relative(notes_dir)
+end
+
 --------------------------------------------------
 -- Helpers
 --------------------------------------------------
@@ -70,6 +128,9 @@ local function is_tracked_note(path)
 end
 
 local function delete_empty_note(path)
+  if not config.empty_cleanup then
+    return false
+  end
   if not note_is_empty(path) then
     return false
   end
@@ -85,6 +146,9 @@ local function delete_empty_note(path)
 end
 
 local function cleanup_empty_created_notes(except)
+  if not config.empty_cleanup then
+    return
+  end
   except = except and vim.fs.normalize(except)
   for path in pairs(created_notes) do
     local normalized = vim.fs.normalize(path)
@@ -161,7 +225,55 @@ local function list_notes(cwd)
 end
 
 --------------------------------------------------
--- Telescope picker
+-- Delete / Archive / Trash
+--------------------------------------------------
+--- Delete a note: uses zen trash if enabled, otherwise hard-deletes.
+local function delete_or_trash(file, display, refresh_cb)
+  if config.zen_archive and zen_available() then
+    local confirm = vim.fn.input("Trash '" .. display .. "'? (y/n) ")
+    if confirm:lower() == "y" then
+      local ok = zen_run { "trash", zen_rel(file) }
+      if ok then
+        vim.notify("Trashed: " .. display, vim.log.levels.INFO)
+      else
+        vim.notify("zen trash failed", vim.log.levels.WARN)
+      end
+    else
+      vim.notify("Cancelled", vim.log.levels.INFO)
+    end
+  else
+    local confirm = vim.fn.input("Permanently delete '" .. display .. "'? (y/n) ")
+    if confirm:lower() == "y" then
+      vim.fn.delete(file, "rf")
+      vim.notify("Deleted: " .. display, vim.log.levels.INFO)
+    else
+      vim.notify("Cancelled", vim.log.levels.INFO)
+    end
+  end
+  if refresh_cb then
+    refresh_cb()
+  end
+end
+
+--- Archive a note via zen CLI (no fallback — shows info if unavailable).
+local function archive_note(file, display, refresh_cb)
+  if config.zen_archive and zen_available() then
+    local ok = zen_run { "archive", zen_rel(file) }
+    if ok then
+      vim.notify("Archived: " .. display, vim.log.levels.INFO)
+    else
+      vim.notify("zen archive failed", vim.log.levels.WARN)
+    end
+  else
+    vim.notify("zen CLI not available – archive requires zen", vim.log.levels.WARN)
+  end
+  if refresh_cb then
+    refresh_cb()
+  end
+end
+
+--------------------------------------------------
+-- Telescope picker: Notes browser
 --------------------------------------------------
 function M.open_notes(cwd)
   ensure_notes_dir()
@@ -184,7 +296,7 @@ function M.open_notes(cwd)
         entry_maker = function(e)
           return {
             value = e,
-            display = (e.is_dir and "  " or "  ") .. e.display .. "  [" .. e.created .. "]",
+            display = (e.is_dir and "  " or "  ") .. e.display .. "  [" .. e.created .. "]",
             ordinal = e.display,
           }
         end,
@@ -200,9 +312,9 @@ function M.open_notes(cwd)
             for _, child in ipairs(children) do
               local name = Path:new(child):make_relative(entry.value.file)
               if vim.uv.fs_stat(child).type == "directory" then
-                table.insert(lines, "  " .. name .. "/")
+                table.insert(lines, "  " .. name .. "/")
               else
-                table.insert(lines, "  " .. name)
+                table.insert(lines, "  " .. name)
               end
             end
             vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
@@ -227,7 +339,7 @@ function M.open_notes(cwd)
           end
         end
 
-        -- ESC mapping for folder navigation
+        -- ESC: navigate up one folder or close at root
         local function esc_handler()
           if cwd == notes_dir then
             actions.close(prompt_bufnr)
@@ -241,6 +353,8 @@ function M.open_notes(cwd)
         map("n", "<Esc>", esc_handler)
 
         map("i", "<CR>", open_file)
+
+        -- <C-n>/<C-a>: create new note
         map("i", "<C-n>", function()
           create_note(cwd, prompt_bufnr)
         end)
@@ -250,6 +364,8 @@ function M.open_notes(cwd)
         map("i", "<C-a>", function()
           create_note(cwd, prompt_bufnr)
         end)
+
+        -- <C-f>: create new folder
         map("i", "<C-f>", function()
           local folder_name = vim.fn.input "Folder name: "
           if folder_name ~= "" then
@@ -257,6 +373,8 @@ function M.open_notes(cwd)
           end
           M.open_notes(cwd)
         end)
+
+        -- <C-r>: rename file/folder
         map("i", "<C-r>", function()
           local selection = action_state.get_selected_entry().value
           local new_name = vim.fn.input("New name: ", vim.fn.fnamemodify(selection.file, ":t"))
@@ -265,16 +383,23 @@ function M.open_notes(cwd)
           end
           M.open_notes(cwd)
         end)
+
+        -- <C-d>: trash (zen) or hard delete (fallback)
         map("i", "<C-d>", function()
           local selection = action_state.get_selected_entry().value
-          local confirm = vim.fn.input("Delete " .. selection.display .. "? (y/n) ")
-          if confirm:lower() == "y" then
-            vim.fn.delete(selection.file, "rf")
-            print("Deleted: " .. selection.file)
-          else
-            print "Cancelled"
-          end
-          M.open_notes(cwd)
+          actions.close(prompt_bufnr)
+          delete_or_trash(selection.file, selection.display, function()
+            M.open_notes(cwd)
+          end)
+        end)
+
+        -- <C-x>: archive via zen (no fallback)
+        map("i", "<C-x>", function()
+          local selection = action_state.get_selected_entry().value
+          actions.close(prompt_bufnr)
+          archive_note(selection.file, selection.display, function()
+            M.open_notes(cwd)
+          end)
         end)
 
         map("i", "<Tab>", actions.move_selection_next)
@@ -287,9 +412,222 @@ function M.open_notes(cwd)
 end
 
 --------------------------------------------------
+-- Telescope picker: Tag browser (zen or fallback)
+--------------------------------------------------
+function M.open_tags()
+  if config.zen_tags and zen_available() then
+    -- zen tag list --json → list of {tag, count}
+    local tags = zen_json { "tag", "list" }
+    if not tags or #tags == 0 then
+      vim.notify("No tags found in vault", vim.log.levels.INFO)
+      return
+    end
+
+    pickers
+      .new({}, {
+        prompt_title = "Notes › Tags",
+        finder = finders.new_table {
+          results = tags,
+          entry_maker = function(t)
+            return {
+              value = t.tag,
+              display = string.format("#%-30s  %d notes", t.tag, t.count or 0),
+              ordinal = t.tag,
+            }
+          end,
+        },
+        sorter = conf.generic_sorter {},
+        attach_mappings = function(_, map)
+          map("i", "<CR>", function(pb)
+            local tag = action_state.get_selected_entry().value
+            actions.close(pb)
+            M.find_by_tag(tag)
+          end)
+          return true
+        end,
+      })
+      :find()
+  else
+    -- Fallback: grep for #tag patterns using Telescope
+    require("telescope.builtin").live_grep {
+      search_dirs = { notes_dir },
+      prompt_title = "Notes › Search Tags (fallback)",
+      default_text = "#",
+    }
+  end
+end
+
+--- Open a Telescope picker of notes carrying the given tag.
+function M.find_by_tag(tag)
+  if config.zen_tags and zen_available() then
+    local notes = zen_json { "tag", "find", tag }
+    if not notes or #notes == 0 then
+      vim.notify("No notes found for #" .. tag, vim.log.levels.INFO)
+      return
+    end
+
+    pickers
+      .new({}, {
+        prompt_title = "Notes › #" .. tag,
+        finder = finders.new_table {
+          results = notes,
+          entry_maker = function(n)
+            local rel = zen_rel(notes_dir .. "/" .. (n.path or ""))
+            return {
+              value = notes_dir .. "/" .. (n.path or ""),
+              display = rel,
+              ordinal = rel,
+            }
+          end,
+        },
+        sorter = conf.generic_sorter {},
+        previewer = conf.file_previewer {},
+        attach_mappings = function(_, map)
+          map("i", "<CR>", function(pb)
+            local file = action_state.get_selected_entry().value
+            actions.close(pb)
+            edit_note(file)
+          end)
+          return true
+        end,
+      })
+      :find()
+  else
+    require("telescope.builtin").live_grep {
+      search_dirs = { notes_dir },
+      prompt_title = "Notes › #" .. tag .. " (fallback)",
+      default_text = "#" .. tag,
+    }
+  end
+end
+
+--------------------------------------------------
+-- Telescope picker: Global task list (zen or fallback grep)
+--------------------------------------------------
+function M.open_tasks()
+  if config.zen_tasks and zen_available() then
+    local tasks = zen_json { "task", "list", "--unchecked" }
+    if not tasks or #tasks == 0 then
+      vim.notify("No open tasks found", vim.log.levels.INFO)
+      return
+    end
+
+    pickers
+      .new({}, {
+        prompt_title = "Notes › Open Tasks",
+        finder = finders.new_table {
+          results = tasks,
+          entry_maker = function(t)
+            local note_rel = t.path or ""
+            local label = string.format("%-40s  %s", t.text or "", note_rel)
+            return {
+              value = t,
+              display = "☐  " .. label,
+              ordinal = (t.text or "") .. note_rel,
+            }
+          end,
+        },
+        sorter = conf.generic_sorter {},
+        attach_mappings = function(_, map)
+          -- <CR>: open the containing note
+          map("i", "<CR>", function(pb)
+            local t = action_state.get_selected_entry().value
+            actions.close(pb)
+            edit_note(notes_dir .. "/" .. (t.path or ""))
+          end)
+          -- <C-t>: toggle task (zen task toggle <id>)
+          map("i", "<C-t>", function(pb)
+            local t = action_state.get_selected_entry().value
+            actions.close(pb)
+            if t.id then
+              local ok = zen_run { "task", "toggle", tostring(t.id) }
+              if ok then
+                vim.notify("Task toggled ✓", vim.log.levels.INFO)
+              else
+                vim.notify("zen task toggle failed", vim.log.levels.WARN)
+              end
+            else
+              vim.notify("Task has no ID – cannot toggle", vim.log.levels.WARN)
+            end
+          end)
+          return true
+        end,
+      })
+      :find()
+  else
+    -- Fallback: grep for unchecked checkboxes
+    require("telescope.builtin").live_grep {
+      search_dirs = { notes_dir },
+      prompt_title = "Notes › Tasks (fallback grep)",
+      default_text = "- [ ]",
+    }
+  end
+end
+
+--------------------------------------------------
+-- Telescope picker: Backlinks (zen or fallback grep)
+--------------------------------------------------
+function M.open_backlinks()
+  local buf = vim.api.nvim_get_current_buf()
+  local fname = vim.api.nvim_buf_get_name(buf)
+  if not fname:match(notes_dir) or not fname:match "%.md$" then
+    vim.notify("Not in a notes buffer", vim.log.levels.WARN)
+    return
+  end
+
+  local rel = zen_rel(fname)
+
+  if config.zen_backlinks and zen_available() then
+    local links = zen_json { "backlinks", rel }
+    if not links or #links == 0 then
+      vim.notify("No backlinks found for " .. rel, vim.log.levels.INFO)
+      return
+    end
+
+    pickers
+      .new({}, {
+        prompt_title = "Notes › Backlinks ← " .. vim.fn.fnamemodify(rel, ":t:r"),
+        finder = finders.new_table {
+          results = links,
+          entry_maker = function(n)
+            local note_rel = n.path or ""
+            return {
+              value = notes_dir .. "/" .. note_rel,
+              display = note_rel,
+              ordinal = note_rel,
+            }
+          end,
+        },
+        sorter = conf.generic_sorter {},
+        previewer = conf.file_previewer {},
+        attach_mappings = function(_, map)
+          map("i", "<CR>", function(pb)
+            local file = action_state.get_selected_entry().value
+            actions.close(pb)
+            edit_note(file)
+          end)
+          return true
+        end,
+      })
+      :find()
+  else
+    -- Fallback: grep for [[filename-stem]] across notes
+    local stem = vim.fn.fnamemodify(fname, ":t:r")
+    require("telescope.builtin").live_grep {
+      search_dirs = { notes_dir },
+      prompt_title = "Notes › Backlinks (fallback grep)",
+      default_text = "[[" .. stem,
+    }
+  end
+end
+
+--------------------------------------------------
 -- Autocmd: auto-rename on heading change
 --------------------------------------------------
 local function maybe_rename_note()
+  if not config.auto_rename then
+    return
+  end
   local buf = vim.api.nvim_get_current_buf()
   local fname = vim.api.nvim_buf_get_name(buf)
   local basename = vim.fn.fnamemodify(fname, ":t")
