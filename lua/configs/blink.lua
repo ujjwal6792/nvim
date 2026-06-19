@@ -117,7 +117,15 @@ blink.setup {
       cwd_files = {
         name = "CWD files",
         module = "configs.cwd_files",
-        min_keyword_length = 1,
+        min_keyword_length = function(context)
+          local line = context.line or ""
+          local col = context.cursor and context.cursor[2] or 0
+          local char_before = line:sub(col, col)
+          if char_before == "/" or char_before == "." or char_before == "\\" then
+            return 0
+          end
+          return 1
+        end,
         score_offset = -2,
       },
     },

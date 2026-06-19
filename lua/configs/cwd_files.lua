@@ -9,11 +9,34 @@ function source.new(opts)
   return self
 end
 
-function source:get_completions(_, callback)
+function source:get_trigger_characters()
+  return { "/", ".", "\\" }
+end
+
+function source:get_completions(context, callback)
   local CompletionItemKind = require("blink.cmp.types").CompletionItemKind
   local cwd = vim.fn.getcwd()
   local entries = {}
-  local scan = vim.uv.fs_scandir(cwd)
+
+  local line_before_cursor = ""
+  if context and context.line and context.cursor then
+    line_before_cursor = context.line:sub(1, context.cursor[2])
+  end
+
+  local path_str = line_before_cursor:match("([^'\"%s%(%)%[%]%{%}%,%;%=%<%>%&%|%*]+)$") or ""
+  local dir, _ = path_str:match("^(.-)([^/\\\\]*)$")
+  dir = dir or ""
+
+  local target_dir
+  if dir == "" then
+    target_dir = cwd
+  elseif dir:sub(1, 1) == "/" or dir:match("^%a+:") or dir:sub(1, 1) == "~" then
+    target_dir = vim.fs.normalize(dir)
+  else
+    target_dir = vim.fs.normalize(cwd .. "/" .. dir)
+  end
+
+  local scan = vim.uv.fs_scandir(target_dir)
 
   if scan then
     while #entries < self.opts.max_entries do
