@@ -79,6 +79,10 @@ blink.setup {
     nerd_font_variant = "normal",
   },
   completion = {
+    trigger = {
+      show_on_backspace = true,
+      show_on_backspace_in_keyword = true,
+    },
     documentation = {
       auto_show = true,
       window = { border = "single" },
