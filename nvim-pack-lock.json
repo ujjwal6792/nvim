@@ -25,6 +25,10 @@
       "rev": "694357861ec9ebf12475ddcdd04ea45a0923c32d",
       "src": "https://github.com/saecki/crates.nvim"
     },
+    "diagram.nvim": {
+      "rev": "a221810b17cdda2d5fdddba9bab3eba6fab8fabc",
+      "src": "https://github.com/3rd/diagram.nvim"
+    },
     "friendly-snippets": {
       "rev": "6cd7280adead7f586db6fccbd15d2cac7e2188b9",
       "src": "https://github.com/rafamadriz/friendly-snippets"

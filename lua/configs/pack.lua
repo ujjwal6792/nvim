@@ -29,6 +29,7 @@ local specs = {
 
   { src = gh "amrbashir/nvim-docs-view" },
   { src = gh "3rd/image.nvim" },
+  { src = gh "3rd/diagram.nvim" },
   { src = gh "OXY2DEV/markview.nvim" },
   { src = gh "vuki656/package-info.nvim" },
   { src = gh "MunifTanjim/nui.nvim" },

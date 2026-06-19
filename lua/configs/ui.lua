@@ -562,6 +562,57 @@ if #vim.api.nvim_list_uis() > 0 then
       kitty_method = "normal",
     }
   end
+
+  local diagram = has "diagram"
+  if diagram then
+    local markdown_integration = require("diagram.integrations.markdown")
+    local renderers = require("diagram/renderers")
+
+    -- Only allow d2 renderer
+    markdown_integration.renderers = {
+      renderers.d2,
+    }
+
+    -- Filter out non-d2 diagrams to avoid errors or warnings
+    local original_query = markdown_integration.query_buffer_diagrams
+    markdown_integration.query_buffer_diagrams = function(bufnr)
+      local diagrams = original_query(bufnr)
+      local filtered = {}
+      local normal_hl = vim.api.nvim_get_hl(0, { name = "Normal" })
+      local bg = normal_hl.bg or normal_hl.background
+      local bg_hex = bg and string.format("#%06x", bg) or "#1e1e2e"
+      for _, diag in ipairs(diagrams) do
+        if diag.renderer_id == "d2" then
+          diag.source = diag.source .. "\nstyle.fill: \"" .. bg_hex .. "\"\n"
+          
+          -- Fold the code block when the diagram is rendered
+          if diag.range and diag.range.start_row then
+            local start_line = diag.range.start_row + 1
+            vim.schedule(function()
+              pcall(vim.api.nvim_buf_call, bufnr, function()
+                pcall(vim.cmd, tostring(start_line) .. "foldclose")
+              end)
+            end)
+          end
+
+          table.insert(filtered, diag)
+        end
+      end
+      return filtered
+    end
+
+    diagram.setup {
+      integrations = {
+        markdown_integration,
+      },
+      renderer_options = {
+        d2 = {
+          theme_id = 100, -- dark theme
+          format = "svg",
+        },
+      },
+    }
+  end
 end
 
 local markview = has "markview"
