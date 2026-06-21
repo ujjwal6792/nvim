@@ -88,3 +88,11 @@ if vim.fn.getenv "TERM_PROGRAM" == "ghostty" then
   opt.title = true
   opt.titlestring = "%{fnamemodify(getcwd(), ':t')}"
 end
+
+vim.filetype.add({
+  extension = {
+    jsonl = "jsonl",
+    jsonld = "jsonld",
+  },
+})
+

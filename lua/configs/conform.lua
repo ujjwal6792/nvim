@@ -41,6 +41,8 @@ conform.setup {
     astro = { "prettierd", "prettier", stop_after_first = true },
     json = { "prettierd", "prettier", stop_after_first = true },
     jsonc = { "prettierd", "prettier", stop_after_first = true },
+    jsonl = { "prettier" },
+    jsonld = { "prettier" },
     yaml = { "prettierd", "prettier", stop_after_first = true },
     markdown = { "prettierd", "prettier", stop_after_first = true },
     ["markdown.mdx"] = { "prettierd", "prettier", stop_after_first = true },
@@ -50,9 +52,16 @@ conform.setup {
     cpp = { "clang_format" },
   },
   formatters = {
+    -- Teach prettier to use the json parser for jsonl/jsonld filetypes.
+    -- No require_cwd: prettier works with defaults when no .prettierrc is found,
+    -- unlike prettierd which needs the right cwd for its daemon.
     prettier = {
-      cwd = util.root_file(prettier_markers),
-      require_cwd = true,
+      options = {
+        ft_parsers = {
+          jsonl = "json",
+          jsonld = "json",
+        },
+      },
     },
     prettierd = {
       cwd = util.root_file(prettier_markers),

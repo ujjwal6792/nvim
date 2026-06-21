@@ -230,6 +230,9 @@ if treesitter then
   treesitter.setup {
     install_dir = vim.fn.stdpath "data" .. "/site",
   }
+  vim.treesitter.language.register("json", "jsonl")
+  vim.treesitter.language.register("json", "jsonld")
+
   if vim.fn.executable "tree-sitter" == 1 then
     treesitter.install(parsers)
   else
