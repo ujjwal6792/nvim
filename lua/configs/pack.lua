@@ -31,6 +31,7 @@ local specs = {
   { src = gh "3rd/image.nvim" },
   { src = gh "3rd/diagram.nvim" },
   { src = gh "OXY2DEV/markview.nvim" },
+  { src = gh "gunasekar/markview-smart-tables.nvim" },
   { src = gh "vuki656/package-info.nvim" },
   { src = gh "MunifTanjim/nui.nvim" },
 

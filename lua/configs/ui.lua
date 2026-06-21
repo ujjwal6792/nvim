@@ -665,6 +665,14 @@ if markview then
     ["asciidoc"] = true,
   }
 
+  local ok_smart, smart_tables = pcall(require, "markview-smart-tables")
+  if ok_smart then
+    smart_tables.setup {
+      wrap_width = 0.9,
+      wrap_minwidth = 5,
+    }
+  end
+
   markview.setup {
     preview = {
       filetypes = vim.tbl_keys(markdown_filetypes),
@@ -683,6 +691,11 @@ if markview then
         local ok = pcall(vim.treesitter.get_parser, buf, lang)
         return ok
       end,
+    },
+    renderers = {
+      markdown_table = ok_smart and function(buffer, item)
+        smart_tables.render(buffer, item)
+      end or nil,
     },
   }
 
