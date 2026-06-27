@@ -2,3 +2,4 @@ nvim.log
 lua/nvim.log
 lua/.nvimlog
 *.log
+.fastembed_cache
