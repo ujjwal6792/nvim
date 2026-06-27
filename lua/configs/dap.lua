@@ -15,7 +15,7 @@ if ok_mason_dap then
     handlers = {
       -- Use default handler for all adapters unless overridden below
       function(config)
-        mason_dap.default_handler(config)
+        mason_dap.default_setup(config)
       end,
 
       -- Override: codelldb for Rust and C/C++
@@ -28,7 +28,7 @@ if ok_mason_dap then
             args = { "--port", "${port}" },
           },
         }
-        config.configurations = {
+        local configurations = {
           -- C / C++ / Embedded (ESP32)
           {
             name = "Launch (C/C++)",
@@ -54,7 +54,12 @@ if ok_mason_dap then
             args = {},
           },
         }
-        mason_dap.default_handler(config)
+        dap.configurations.c = configurations
+        dap.configurations.cpp = configurations
+        dap.configurations.rust = configurations
+
+        config.configurations = {}
+        mason_dap.default_setup(config)
       end,
 
       -- Override: js-debug-adapter for Node / browser
@@ -69,7 +74,7 @@ if ok_mason_dap then
             args = { js_debug_path .. "/js-debug/src/dapDebugServer.js", "${port}" },
           },
         }
-        config.configurations = {
+        local configurations = {
           {
             name = "Launch Node.js",
             type = "pwa-node",
@@ -102,10 +107,11 @@ if ok_mason_dap then
 
         -- Apply to JS/TS filetypes
         for _, ft in ipairs { "javascript", "javascriptreact", "typescript", "typescriptreact" } do
-          dap.configurations[ft] = config.configurations
+          dap.configurations[ft] = configurations
         end
 
-        mason_dap.default_handler(config)
+        config.configurations = {}
+        mason_dap.default_setup(config)
       end,
     },
   }

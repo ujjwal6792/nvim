@@ -19,6 +19,7 @@ local specs = {
   { src = gh "mfussenegger/nvim-lint" },
   { src = gh "mfussenegger/nvim-dap" },
   { src = gh "rcarriga/nvim-dap-ui" },
+  { src = gh "nvim-neotest/nvim-nio" },
   { src = gh "theHamsta/nvim-dap-virtual-text" },
   { src = gh "jay-babu/mason-nvim-dap.nvim" },
   { src = gh "neovim/nvim-lspconfig" },
