@@ -194,9 +194,59 @@ vim.lsp.config("docker_compose_language_service", {
   root_markers = { "docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml", ".git" },
 })
 
+vim.lsp.config("eslint", {
+  cmd = { "vscode-eslint-language-server", "--stdio" },
+  filetypes = {
+    "javascript",
+    "javascriptreact",
+    "javascript.jsx",
+    "typescript",
+    "typescriptreact",
+    "typescript.tsx",
+    "svelte",
+    "astro",
+  },
+  root_markers = {
+    ".eslintrc",
+    ".eslintrc.js",
+    ".eslintrc.cjs",
+    ".eslintrc.mjs",
+    ".eslintrc.json",
+    ".eslintrc.yaml",
+    ".eslintrc.yml",
+    "eslint.config.js",
+    "eslint.config.cjs",
+    "eslint.config.mjs",
+    "eslint.config.ts",
+    "package.json",
+    ".git",
+  },
+  settings = {
+    validate = "on",
+    packageManager = nil,
+    useESLintClass = false,
+    experimental = { useFlatConfig = false },
+    codeActionOnSave = { enable = false, mode = "all" },
+    format = false, -- let conform/prettier handle formatting
+    quiet = false,
+    onIgnoredFiles = "off",
+    rulesCustomizations = {},
+    run = "onType",
+    problems = { shortenToSingleLine = false },
+    nodePath = "",
+    workingDirectory = { mode = "location" },
+    codeAction = {
+      disableRuleComment = { enable = true, location = "separateLine" },
+      showDocumentation = { enable = true },
+    },
+  },
+})
+
+
 for _, server in ipairs {
   "lua_ls",
   "ts_ls",
+  "eslint",
   "marksman",
   "svelte",
   "astro",

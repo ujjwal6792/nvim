@@ -16,6 +16,11 @@ local specs = {
   { src = gh "folke/which-key.nvim" },
 
   { src = gh "mason-org/mason.nvim" },
+  { src = gh "mfussenegger/nvim-lint" },
+  { src = gh "mfussenegger/nvim-dap" },
+  { src = gh "rcarriga/nvim-dap-ui" },
+  { src = gh "theHamsta/nvim-dap-virtual-text" },
+  { src = gh "jay-babu/mason-nvim-dap.nvim" },
   { src = gh "neovim/nvim-lspconfig" },
   { src = gh "stevearc/conform.nvim" },
   { src = gh "saghen/blink.cmp", version = "v1" },
@@ -23,15 +28,13 @@ local specs = {
 
   { src = gh "nvim-mini/mini.nvim" },
   { src = gh "kdheepak/lazygit.nvim" },
-  { src = gh "mikavilpas/yazi.nvim" },
-  { src = gh "nvim-pack/nvim-spectre" },
+  { src = gh "MagicDuck/grug-far.nvim" },
   { src = gh "rmagatti/auto-session" },
 
   { src = gh "amrbashir/nvim-docs-view" },
   { src = gh "3rd/image.nvim" },
   { src = gh "3rd/diagram.nvim" },
   { src = gh "OXY2DEV/markview.nvim" },
-  { src = gh "gunasekar/markview-smart-tables.nvim" },
   { src = gh "vuki656/package-info.nvim" },
   { src = gh "MunifTanjim/nui.nvim" },
 

@@ -138,12 +138,14 @@ map("n", "<leader>wk", function()
   vim.cmd("WhichKey " .. fn.input "WhichKey: ")
 end, { desc = "whichkey query lookup" })
 
-map("n", "<leader><leader>", "<cmd>Yazi<CR>", { desc = "open yazi at current file" })
-map({ "n", "v" }, "<leader>cw", "<cmd>Yazi cwd<CR>", { desc = "open yazi cwd" })
 
 map("n", "<leader>fr", function()
-  require("spectre").open()
-end, { desc = "replace in files" })
+  require("grug-far").open()
+end, { desc = "find and replace in files" })
+
+map("n", "<leader>fR", function()
+  require("grug-far").open { prefills = { search = vim.fn.expand "<cword>" } }
+end, { desc = "find and replace word under cursor" })
 
 map("n", "<leader>sr", "<cmd>AutoSession search<CR>", { desc = "session search" })
 map("n", "<leader>ss", "<cmd>AutoSession save<CR>", { desc = "save session" })
@@ -165,6 +167,61 @@ end, { desc = "notes: task list" })
 map("n", "<leader>mb", function()
   require("notes").open_backlinks()
 end, { desc = "notes: backlinks" })
+
+-- ── DAP (Debugger) keymaps ────────────────────────────────────────────────────
+map("n", "<leader>db", function()
+  require("dap").toggle_breakpoint()
+end, { desc = "dap toggle breakpoint" })
+
+map("n", "<leader>dB", function()
+  require("dap").set_breakpoint(vim.fn.input "Condition: ")
+end, { desc = "dap conditional breakpoint" })
+
+map("n", "<leader>dc", function()
+  require("dap").continue()
+end, { desc = "dap continue" })
+
+map("n", "<leader>dC", function()
+  require("dap").run_to_cursor()
+end, { desc = "dap run to cursor" })
+
+map("n", "<leader>di", function()
+  require("dap").step_into()
+end, { desc = "dap step into" })
+
+map("n", "<leader>do", function()
+  require("dap").step_over()
+end, { desc = "dap step over" })
+
+map("n", "<leader>dO", function()
+  require("dap").step_out()
+end, { desc = "dap step out" })
+
+map("n", "<leader>dr", function()
+  require("dap").repl.toggle()
+end, { desc = "dap toggle repl" })
+
+map("n", "<leader>dl", function()
+  require("dap").run_last()
+end, { desc = "dap run last" })
+
+map("n", "<leader>dt", function()
+  require("dap").terminate()
+  require("dapui").close()
+end, { desc = "dap terminate" })
+
+map("n", "<leader>du", function()
+  require("dapui").toggle()
+end, { desc = "dap toggle ui" })
+
+map({ "n", "v" }, "<leader>de", function()
+  require("dapui").eval()
+end, { desc = "dap eval expression" })
+
+map("n", "<leader>dp", function()
+  require("dap").set_breakpoint(nil, nil, vim.fn.input "Log message: ")
+end, { desc = "dap log point" })
+
 
 local cargo_toml = fn.getcwd() .. "/Cargo.toml"
 if vim.uv.fs_stat(cargo_toml) then

@@ -11,4 +11,7 @@ require "configs.pack"
 require "configs.ui"
 require "configs.conform"
 require "configs.lspconfig"
+require "configs.lint"
+require "configs.dap"
 require "mappings"
+require("md-table-fmt").setup()

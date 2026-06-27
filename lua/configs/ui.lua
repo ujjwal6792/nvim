@@ -408,7 +408,6 @@ if mason then
       "prettier",
       "prettierd",
       "tailwindcss-language-server",
-      "vale",
       "cssmodules-language-server",
       "eslint-lsp",
       "eslint_d",
@@ -418,12 +417,16 @@ if mason then
       "dockerfile-language-server",
       "docker-compose-language-service",
       "yamlfmt",
+      "yamllint",
       "taplo",
       "gopls",
       "golangci-lint",
+      "staticcheck",
       "clangd",
       "clang-format",
       "marksman",
+      "hadolint",
+      "dotenv-linter",
     } do
       local ok_pkg, pkg = pcall(registry.get_package, package)
       if ok_pkg and not pkg:is_installed() then
@@ -568,9 +571,9 @@ if #vim.api.nvim_list_uis() > 0 then
 
   local diagram = has "diagram"
   if diagram then
-    local markdown_integration = require("diagram.integrations.markdown")
-    local renderers = require("diagram/renderers")
-    local d2_ns = vim.api.nvim_create_namespace("d2_hidden_text")
+    local markdown_integration = require "diagram.integrations.markdown"
+    local renderers = require "diagram/renderers"
+    local d2_ns = vim.api.nvim_create_namespace "d2_hidden_text"
 
     -- Only allow d2 renderer
     markdown_integration.renderers = {
@@ -590,7 +593,7 @@ if #vim.api.nvim_list_uis() > 0 then
     markdown_integration.query_buffer_diagrams = function(bufnr)
       local diagrams = original_query(bufnr)
       local filtered = {}
-      
+
       -- Clear previous highlights
       vim.api.nvim_buf_clear_namespace(bufnr, d2_ns, 0, -1)
 
@@ -604,8 +607,7 @@ if #vim.api.nvim_list_uis() > 0 then
 
       for _, diag in ipairs(diagrams) do
         if diag.renderer_id == "d2" then
-          diag.source = diag.source .. "\nstyle.fill: \"" .. bg_hex .. "\"\n"
-          
+          diag.source = diag.source .. '\nstyle.fill: "' .. bg_hex .. '"\n'
           -- Fold the code block and render the diagram immediately after the fold
           if diag.range and diag.range.start_row and not is_insert then
             local start_row = diag.range.start_row
@@ -613,7 +615,7 @@ if #vim.api.nvim_list_uis() > 0 then
             local line_count = vim.api.nvim_buf_line_count(bufnr)
             for i = start_row + 1, line_count - 1 do
               local line = vim.api.nvim_buf_get_lines(bufnr, i, i + 1, false)[1] or ""
-              if line:match("^%s*```%s*$") then
+              if line:match "^%s*```%s*$" then
                 end_row = i
                 break
               end
@@ -668,14 +670,6 @@ if markview then
     ["asciidoc"] = true,
   }
 
-  local ok_smart, smart_tables = pcall(require, "markview-smart-tables")
-  if ok_smart then
-    smart_tables.setup {
-      wrap_width = 0.9,
-      wrap_minwidth = 5,
-    }
-  end
-
   markview.setup {
     preview = {
       filetypes = vim.tbl_keys(markdown_filetypes),
@@ -694,11 +688,6 @@ if markview then
         local ok = pcall(vim.treesitter.get_parser, buf, lang)
         return ok
       end,
-    },
-    renderers = {
-      markdown_table = ok_smart and function(buffer, item)
-        smart_tables.render(buffer, item)
-      end or nil,
     },
   }
 
