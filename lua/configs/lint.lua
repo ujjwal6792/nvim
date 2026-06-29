@@ -24,10 +24,11 @@ lint.linters_by_ft = {
   -- Config files
   yaml = { "yamllint" },
   dotenv = { "dotenv_linter" },
+  env = { "dotenv_linter" },
 }
 
 -- Trigger linting on these events
-vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost", "InsertLeave" }, {
+vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost", "InsertLeave", "TextChanged" }, {
   group = vim.api.nvim_create_augroup("nvim_lint", { clear = true }),
   callback = function()
     -- Only lint if the linter binary is available

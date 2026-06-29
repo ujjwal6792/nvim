@@ -94,5 +94,10 @@ vim.filetype.add({
     jsonl = "jsonl",
     jsonld = "jsonld",
   },
+  pattern = {
+    [".*%.env.*"] = "dotenv",
+    [".*[Dd]ockerfile.*"] = "dockerfile",
+    [".*DOCKERFILE.*"] = "dockerfile",
+  },
 })
 

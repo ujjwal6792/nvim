@@ -57,7 +57,7 @@ end, { desc = "buffer close" })
 map("n", "<leader>/", "gcc", { remap = true, desc = "toggle comment" })
 map("v", "<leader>/", "gc", { remap = true, desc = "toggle comment" })
 
-map("n", "<C-n>", "<cmd>NvimTreeToggle<CR>", { desc = "nvimtree toggle window" })
+map("n", "<leader><leader>", "<cmd>NvimTreeToggle<CR>", { desc = "nvimtree toggle window" })
 map("n", "<leader>e", "<cmd>NvimTreeFocus<CR>", { desc = "focus nvimtree" })
 map("n", "<leader>we", "<cmd>NvimTreeRefresh<CR>", { desc = "refresh nvimtree" })
 map("n", "<leader>ww", "<cmd>NvimTreeToggle<CR>", { desc = "toggle nvimtree" })
@@ -71,7 +71,12 @@ map("n", "<leader>fz", "<cmd>Telescope current_buffer_fuzzy_find<CR>", { desc = 
 map("n", "<leader>cm", "<cmd>Telescope git_commits<CR>", { desc = "telescope git commits" })
 map("n", "<leader>gt", "<cmd>Telescope git_status<CR>", { desc = "telescope git status" })
 map("n", "<leader>ff", "<cmd>Telescope find_files<CR>", { desc = "telescope find files" })
-map("n", "<leader>fa", "<cmd>Telescope find_files follow=true no_ignore=true hidden=true<CR>", { desc = "telescope find all files" })
+map(
+  "n",
+  "<leader>fa",
+  "<cmd>Telescope find_files follow=true no_ignore=true hidden=true<CR>",
+  { desc = "telescope find all files" }
+)
 
 map("n", "ea", "$a", { desc = "move cursor to end and enter insert mode" })
 
@@ -137,7 +142,6 @@ map("n", "<leader>wK", "<cmd>WhichKey<CR>", { desc = "whichkey all keymaps" })
 map("n", "<leader>wk", function()
   vim.cmd("WhichKey " .. fn.input "WhichKey: ")
 end, { desc = "whichkey query lookup" })
-
 
 map("n", "<leader>fr", function()
   require("grug-far").open()
@@ -221,7 +225,6 @@ end, { desc = "dap eval expression" })
 map("n", "<leader>dp", function()
   require("dap").set_breakpoint(nil, nil, vim.fn.input "Log message: ")
 end, { desc = "dap log point" })
-
 
 local cargo_toml = fn.getcwd() .. "/Cargo.toml"
 if vim.uv.fs_stat(cargo_toml) then

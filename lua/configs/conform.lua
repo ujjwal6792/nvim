@@ -49,9 +49,15 @@ conform.setup {
     toml = { "taplo" },
     go = { "gofumpt", "goimports", "gofmt", stop_after_first = true },
     c = { "clang_format" },
-    cpp = { "clang_format" },
+    dotenv = { "dotenv_linter" },
+    env = { "dotenv_linter" },
   },
   formatters = {
+    dotenv_linter = {
+      command = "dotenv-linter",
+      args = { "fix", "--no-backup", "$FILENAME" },
+      stdin = false,
+    },
     -- Teach prettier to use the json parser for jsonl/jsonld filetypes.
     -- No require_cwd: prettier works with defaults when no .prettierrc is found,
     -- unlike prettierd which needs the right cwd for its daemon.
