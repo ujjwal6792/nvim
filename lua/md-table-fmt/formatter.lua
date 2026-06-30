@@ -57,14 +57,49 @@ local function split_cells(line)
   line = trim(line)
   -- consume leading pipe
   if line:sub(1, 1) == "|" then line = line:sub(2) end
-  -- consume trailing pipe
-  if line:sub(-1) == "|" then line = line:sub(1, -2) end
+  -- consume trailing pipe only if it is not escaped
+  if line:sub(-1) == "|" then
+    local bs_count = 0
+    for j = #line - 1, 1, -1 do
+      if line:sub(j, j) == "\\" then
+        bs_count = bs_count + 1
+      else
+        break
+      end
+    end
+    if bs_count % 2 == 0 then
+      line = line:sub(1, -2)
+    end
+  end
 
   local cells = {}
-  -- append sentinel so the last cell is captured by the pattern
-  for cell in (line .. "|"):gmatch("([^|]*)|") do
-    table.insert(cells, trim(cell))
+  local current = {}
+  local i = 1
+  local len = #line
+  while i <= len do
+    local c = line:sub(i, i)
+    if c == "\\" then
+      local next_c = line:sub(i + 1, i + 1)
+      if next_c == "|" then
+        table.insert(current, "\\|")
+        i = i + 2
+      elseif next_c == "\\" then
+        table.insert(current, "\\\\")
+        i = i + 2
+      else
+        table.insert(current, "\\")
+        i = i + 1
+      end
+    elseif c == "|" then
+      table.insert(cells, trim(table.concat(current)))
+      current = {}
+      i = i + 1
+    else
+      table.insert(current, c)
+      i = i + 1
+    end
   end
+  table.insert(cells, trim(table.concat(current)))
   return cells
 end
 
@@ -159,9 +194,21 @@ local function wrap_text(text, width)
       local remaining = word
       while dw(remaining) > width do
         local prefix = ""
-        local chars = vim.fn.split(remaining, "\\zs")
-        local idx = 0
+        local raw_chars = vim.fn.split(remaining, "\\zs")
+        local chars = {}
+        local idx = 1
+        while idx <= #raw_chars do
+          if raw_chars[idx] == "\\" and (raw_chars[idx + 1] == "|" or raw_chars[idx + 1] == "\\") then
+            table.insert(chars, "\\" .. raw_chars[idx + 1])
+            idx = idx + 2
+          else
+            table.insert(chars, raw_chars[idx])
+            idx = idx + 1
+          end
+        end
+
         local w = 0
+        local char_idx = 0
         for i, ch in ipairs(chars) do
           local cw = dw(ch)
           if w + cw > width then
@@ -169,14 +216,14 @@ local function wrap_text(text, width)
           end
           prefix = prefix .. ch
           w = w + cw
-          idx = i
+          char_idx = i
         end
-        if idx == 0 then
+        if char_idx == 0 then
           prefix = chars[1] or ""
-          idx = 1
+          char_idx = 1
         end
         table.insert(lines, prefix)
-        remaining = table.concat(vim.list_slice(chars, idx + 1), "")
+        remaining = table.concat(vim.list_slice(chars, char_idx + 1), "")
       end
       if remaining ~= "" then
         table.insert(cur_line, remaining)
