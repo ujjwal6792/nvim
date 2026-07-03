@@ -163,22 +163,36 @@ function M.apply()
   vim.api.nvim_set_hl(0, "MiniStarterQuery", { fg = c.pink, bold = true })
   vim.api.nvim_set_hl(0, "MiniStarterCurrent", { fg = c.pink, bg = c.surface0, bold = true })
   -- Custom highlights for jsonl task runner files
-  vim.api.nvim_set_hl(0, "JsonlLineTodo", { fg = c.text })
-  vim.api.nvim_set_hl(0, "JsonlLineInProgress", { fg = c.yellow })
-  vim.api.nvim_set_hl(0, "JsonlLineBlocked", { fg = c.red })
-  vim.api.nvim_set_hl(0, "JsonlLineDone", { fg = c.green, italic = true })
+  -- ─── JSONL Task File Highlights ──────────────────────────────────────
+  -- Design: row bg tints preserve JSON key readability; bold tokens pop.
+
+  -- Row-level background tints (Priority 5)
+  -- Using bg tints so JSON keys/colons/braces stay readable in their normal fg.
+  vim.api.nvim_set_hl(0, "JsonlLineTodo",       { bg = NONE })                             -- default; no tint needed
+  vim.api.nvim_set_hl(0, "JsonlLineInProgress", { bg = "#2a2520" })                       -- warm amber tint
+  vim.api.nvim_set_hl(0, "JsonlLineBlocked",    { bg = "#251f1f" })                       -- subtle red tint
+  vim.api.nvim_set_hl(0, "JsonlLineDone",       { fg = c.overlay0, italic = false })      -- muted fg only; done = greyed out
+
+  -- Status VALUES (Priority 15 - always bold, always pop)
+  vim.api.nvim_set_hl(0, "JsonlStatusTodo",       { fg = c.blue,   bold = true })          -- blue  → actionable
+  vim.api.nvim_set_hl(0, "JsonlStatusInProgress", { fg = c.peach,  bold = true })          -- peach → active/warm
+  vim.api.nvim_set_hl(0, "JsonlStatusBlocked",    { fg = c.red,    bold = true })          -- red   → danger/attention
+  vim.api.nvim_set_hl(0, "JsonlStatusDone",       { fg = c.green,  bold = true })          -- green → complete
+
+  -- Priority VALUES (Priority 12)
+  vim.api.nvim_set_hl(0, "JsonlPriorityP0", { fg = c.red,      bold = true, underline = true }) -- P0 critical: red + underline
+  vim.api.nvim_set_hl(0, "JsonlPriorityP1", { fg = c.peach,    bold = true })                   -- P1 high
+  vim.api.nvim_set_hl(0, "JsonlPriorityP2", { fg = c.yellow,   bold = false })                  -- P2 medium; no bold to reduce noise
+  vim.api.nvim_set_hl(0, "JsonlPriorityP3", { fg = c.overlay2, bold = false })                  -- P3 low; subdued
+
+  -- Metadata token VALUES (Priority 12)
+  vim.api.nvim_set_hl(0, "JsonlTaskId",     { fg = c.mauve,   bold = true })              -- ID: mauve bold = anchor identifier
+  vim.api.nvim_set_hl(0, "JsonlSprint",     { fg = c.sky,     bold = false })             -- sprint: sky blue, light
+  vim.api.nvim_set_hl(0, "JsonlMilestone",  { fg = c.lavender, bold = true })             -- milestone: lavender bold
+  vim.api.nvim_set_hl(0, "JsonlEpic",       { fg = c.flamingo, bold = false })            -- epic: flamingo, distinct
+
+  -- completed_at VALUE (Priority 15 - always teal when present)
   vim.api.nvim_set_hl(0, "JsonlCompletedAt", { fg = c.teal, bold = true })
-  vim.api.nvim_set_hl(0, "JsonlStatusTodo", { fg = c.blue, bold = true })
-  vim.api.nvim_set_hl(0, "JsonlStatusInProgress", { fg = c.peach, bold = true })
-  vim.api.nvim_set_hl(0, "JsonlStatusBlocked", { fg = c.maroon, bold = true })
-  vim.api.nvim_set_hl(0, "JsonlStatusDone", { fg = c.green, bold = true })
-  vim.api.nvim_set_hl(0, "JsonlPriorityP0", { fg = c.red, bold = true })
-  vim.api.nvim_set_hl(0, "JsonlPriorityP1", { fg = c.yellow, bold = true })
-  vim.api.nvim_set_hl(0, "JsonlPriorityP2", { fg = c.green, bold = true })
-  vim.api.nvim_set_hl(0, "JsonlPriorityP3", { fg = c.overlay1, bold = true })
-  vim.api.nvim_set_hl(0, "JsonlTaskId", { fg = c.mauve, bold = true })
-  vim.api.nvim_set_hl(0, "JsonlSprint", { fg = c.teal })
-  vim.api.nvim_set_hl(0, "JsonlMilestone", { fg = c.lavender, bold = true })
 end
 
 function M.setup()
