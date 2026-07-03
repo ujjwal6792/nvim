@@ -378,6 +378,7 @@ if telescope then
     },
   }
   pcall(telescope.load_extension, "lazygit")
+  pcall(telescope.load_extension, "tasks")
 end
 
 local gitsigns = has "gitsigns"
