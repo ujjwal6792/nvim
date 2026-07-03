@@ -225,6 +225,8 @@ if treesitter then
     "proto",
     "markdown",
     "markdown_inline",
+    "bash",
+    "dockerfile",
   }
 
   treesitter.setup {
@@ -232,6 +234,7 @@ if treesitter then
   }
   vim.treesitter.language.register("json", "jsonl")
   vim.treesitter.language.register("json", "jsonld")
+  vim.treesitter.language.register("bash", "dotenv")
 
   if vim.fn.executable "tree-sitter" == 1 then
     treesitter.install(parsers)
