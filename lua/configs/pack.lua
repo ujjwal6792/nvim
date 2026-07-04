@@ -2,7 +2,9 @@ local gh = function(repo)
   return "https://github.com/" .. repo
 end
 
-local specs = {
+local M = {}
+
+M.specs = {
   { src = gh "catppuccin/nvim", name = "catppuccin" },
   { src = gh "nvim-tree/nvim-web-devicons" },
   { src = gh "nvim-lua/plenary.nvim" },
@@ -45,9 +47,11 @@ local specs = {
   { src = gh "dsznajder/vscode-es7-javascript-react-snippets" },
 }
 
-local ok, err = pcall(vim.pack.add, specs, { load = true, confirm = false })
+local ok, err = pcall(vim.pack.add, M.specs, { load = true, confirm = false })
 if not ok then
   vim.schedule(function()
     vim.notify("vim.pack.add failed: " .. err, vim.log.levels.ERROR)
   end)
 end
+
+return M

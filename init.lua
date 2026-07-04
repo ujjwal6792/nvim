@@ -8,7 +8,7 @@ require("vim._core.ui2").enable {}
 require "options"
 require "autocwd"
 require "configs.pack"
-require "configs.ui"
+require "plugins._loader"
 require "configs.conform"
 require "configs.lspconfig"
 require "configs.lint"

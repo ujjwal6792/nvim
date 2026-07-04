@@ -1,0 +1,70 @@
+local ok, catppuccin = pcall(require, "catppuccin")
+if not ok then
+  return
+end
+
+catppuccin.setup {
+  flavour = "mocha",
+  transparent_background = true,
+  styles = {
+    comments = { "italic" },
+    conditionals = { "italic" },
+    loops = {},
+    functions = {},
+    keywords = { "italic" },
+    strings = {},
+    variables = {},
+    numbers = {},
+    booleans = {},
+    properties = {},
+    types = {},
+    operators = {},
+  },
+  integrations = {
+    blink_cmp = true,
+    gitsigns = true,
+    markdown = true,
+    mason = true,
+    mini = true,
+    native_lsp = { enabled = true },
+    nvimtree = true,
+    treesitter = true,
+    which_key = true,
+  },
+  custom_highlights = function(colors)
+    return {
+      NormalFloat = { fg = colors.text, bg = colors.mantle },
+      FloatBorder = { fg = colors.blue, bg = colors.mantle },
+      Comment = { fg = colors.overlay1, style = { "italic" } },
+      ["@comment"] = { fg = colors.overlay1, style = { "italic" } },
+      ["@function"] = { fg = colors.blue, style = { "bold" } },
+      ["@function.builtin"] = { fg = colors.blue, style = { "bold", "italic" } },
+      ["@function.call"] = { fg = colors.blue, style = { "bold" } },
+      ["@keyword"] = { fg = colors.mauve, style = { "italic" } },
+      ["@keyword.function"] = { fg = colors.mauve, style = { "italic" } },
+      ["@conditional"] = { fg = colors.mauve, style = { "italic" } },
+      ["@repeat"] = { fg = colors.mauve, style = { "italic" } },
+      ["@parameter"] = { fg = colors.maroon, style = { "italic" } },
+      ["@variable"] = { fg = colors.text },
+      ["@variable.builtin"] = { fg = colors.red, style = { "italic" } },
+      ["@variable.member"] = { fg = colors.teal },
+      ["@property"] = { fg = colors.teal },
+      ["@field"] = { fg = colors.teal },
+      ["@constant"] = { fg = colors.peach, style = { "bold" } },
+      ["@constant.builtin"] = { fg = colors.peach, style = { "bold", "italic" } },
+      ["@number"] = { fg = colors.peach },
+      ["@boolean"] = { fg = colors.peach, style = { "bold" } },
+      ["@string"] = { fg = colors.green },
+      ["@string.regex"] = { fg = colors.peach },
+      ["@type"] = { fg = colors.yellow },
+      ["@type.builtin"] = { fg = colors.yellow, style = { "italic" } },
+      ["@operator"] = { fg = colors.sky },
+      ["@punctuation.bracket"] = { fg = colors.overlay2 },
+      ["@punctuation.delimiter"] = { fg = colors.overlay2 },
+      ["@tag"] = { fg = colors.red },
+      ["@tag.attribute"] = { fg = colors.yellow, style = { "italic" } },
+      ["@tag.delimiter"] = { fg = colors.sky },
+    }
+  end,
+}
+vim.cmd.colorscheme "catppuccin"
