@@ -1,16 +1,8 @@
-local pickers = require "telescope.pickers"
-local finders = require "telescope.finders"
-local conf = require("telescope.config").values
-local actions = require "telescope.actions"
-local action_state = require "telescope.actions.state"
-local previewers = require "telescope.previewers"
-
 local M = {}
 
 local pack_path = vim.fn.stdpath("data") .. "/site/pack/core/opt"
 
 local function get_plugin_dir_name(src)
-  -- extract the repo name from the github url
   local parts = {}
   for part in string.gmatch(src, "[^/]+") do
     table.insert(parts, part)
@@ -54,123 +46,118 @@ local function execute_command(cmd, cwd)
   return true
 end
 
-function M.open(opts)
-  opts = opts or {}
+function M.open()
+  if not pcall(require, "snacks") then
+    vim.notify("Snacks.nvim is required for PackManager", vim.log.levels.ERROR)
+    return
+  end
+
   local plugins = get_plugins()
+  local items = {}
+  for _, plugin in ipairs(plugins) do
+    local icon = plugin.installed and "●" or "◌"
+    local status = plugin.installed and "[installed]" or "[missing]"
+    table.insert(items, {
+      text = plugin.src .. " " .. plugin.name,
+      plugin = plugin,
+      _icon = icon,
+      _status = status,
+    })
+  end
 
-  pickers.new(opts, {
-    prompt_title = "Pack Manager (Press <C-/> for actions)",
-    finder = finders.new_table {
-      results = plugins,
-      entry_maker = function(entry)
-        local icon = entry.installed and "●" or "◌"
-        local status = entry.installed and "[installed]" or "[missing]"
-        local display = string.format("%s %-30s %-12s %s", icon, entry.src:gsub("https://github.com/", ""), status, entry.name)
-
-        return {
-          value = entry,
-          display = display,
-          ordinal = entry.src .. " " .. entry.name .. " " .. status,
-        }
-      end,
-    },
-    sorter = conf.generic_sorter(opts),
-    previewer = previewers.new_buffer_previewer({
-      title = "README",
-      define_preview = function(self, entry, status)
-        local plugin = entry.value
-        if plugin.installed then
-          local path = pack_path .. "/" .. plugin.name
-          local readme = (
+  Snacks.picker.pick({
+    title = "Pack Manager (Press ? for actions)",
+    items = items,
+    format = function(item, picker)
+      local plugin = item.plugin
+      return {
+        { item._icon, plugin.installed and "DiagnosticOk" or "DiagnosticWarn" },
+        { " " },
+        { plugin.src:gsub("https://github.com/", ""), "String" },
+        { " " },
+        { item._status, "Comment" },
+      }
+    end,
+    preview = function(ctx)
+      local plugin = ctx.item.plugin
+      if plugin.installed then
+        local path = pack_path .. "/" .. plugin.name
+        local readme = (
             vim.loop.fs_stat(path .. "/README.md") and (path .. "/README.md") or
             vim.loop.fs_stat(path .. "/README.mdx") and (path .. "/README.mdx") or
             vim.loop.fs_stat(path .. "/readme.md") and (path .. "/readme.md") or
             vim.loop.fs_stat(path .. "/README.MD") and (path .. "/README.MD")
-          )
-          
-          if readme then
-            conf.buffer_previewer_maker(readme, self.state.bufnr, {
-              bufname = self.state.bufname,
-              winid = self.state.winid,
-            })
-            
-            vim.schedule(function()
-              if vim.api.nvim_buf_is_valid(self.state.bufnr) then
-                local ext = readme:match("^.+(%..+)$")
-                if ext == ".mdx" then
-                  vim.bo[self.state.bufnr].filetype = "markdown.mdx"
-                else
-                  vim.bo[self.state.bufnr].filetype = "markdown"
-                end
+        )
+        if readme then
+          local lines = vim.fn.readfile(readme)
+          vim.api.nvim_buf_set_lines(ctx.buf, 0, -1, false, lines)
+          vim.schedule(function()
+            if vim.api.nvim_buf_is_valid(ctx.buf) then
+              local ext = readme:match("^.+(%..+)$")
+              if ext == ".mdx" then
+                vim.bo[ctx.buf].filetype = "markdown.mdx"
+              else
+                vim.bo[ctx.buf].filetype = "markdown"
               end
-            end)
-            return
-          end
-        end
-        vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, { "No README available (or plugin not installed)." })
-      end,
-    }),
-    attach_mappings = function(prompt_bufnr, map)
-      -- Install (if missing) / no-op (if installed)
-      actions.select_default:replace(function()
-        local selection = action_state.get_selected_entry()
-        if not selection then return end
-        local plugin = selection.value
-
-        if plugin.installed then
-          vim.notify("Plugin " .. plugin.name .. " is already installed.", vim.log.levels.INFO)
+            end
+          end)
           return
         end
-
-        actions.close(prompt_bufnr)
-        vim.notify("Installing " .. plugin.name .. "...", vim.log.levels.INFO)
-        
-        -- use vim.pack.add for this specific plugin
-        local ok, err = pcall(vim.pack.add, { plugin.spec }, { load = false, confirm = false })
-        if not ok then
-           vim.notify("Install failed: " .. err, vim.log.levels.ERROR)
-        else
-           vim.notify("Installed " .. plugin.name, vim.log.levels.INFO)
-        end
-      end)
-
-      -- Remove
-      map("i", "<C-r>", function()
-        local selection = action_state.get_selected_entry()
-        if not selection then return end
-        local plugin = selection.value
-
+      end
+      local lines = { "No README available (or plugin not installed)." }
+      vim.api.nvim_buf_set_lines(ctx.buf, 0, -1, false, lines)
+    end,
+    confirm = function(picker, item)
+      local plugin = item.plugin
+      if plugin.installed then
+        vim.notify("Plugin " .. plugin.name .. " is already installed.", vim.log.levels.INFO)
+        return
+      end
+      picker:close()
+      vim.notify("Installing " .. plugin.name .. "...", vim.log.levels.INFO)
+      
+      local ok, err = pcall(vim.pack.add, { plugin.spec }, { load = false, confirm = false })
+      if not ok then
+         vim.notify("Install failed: " .. err, vim.log.levels.ERROR)
+      else
+         vim.notify("Installed " .. plugin.name, vim.log.levels.INFO)
+      end
+    end,
+    win = {
+      input = {
+        keys = {
+          ["<c-r>"] = { "remove_plugin", mode = { "i", "n" }, desc = "Remove Plugin" },
+          ["<c-u>"] = { "update_plugin", mode = { "i", "n" }, desc = "Update Plugin" },
+          ["<c-o>"] = { "open_github", mode = { "i", "n" }, desc = "Open GitHub" },
+          ["<c-y>"] = { "copy_url", mode = { "i", "n" }, desc = "Copy URL" },
+        }
+      }
+    },
+    actions = {
+      remove_plugin = function(picker, item)
+        if not item then return end
+        local plugin = item.plugin
         if not plugin.installed then
           vim.notify("Plugin " .. plugin.name .. " is not installed.", vim.log.levels.WARN)
           return
         end
-
         local path = pack_path .. "/" .. plugin.name
         local choice = vim.fn.confirm("Delete plugin " .. plugin.name .. "?", "&Yes\n&No", 2)
         if choice == 1 then
           if execute_command({ "rm", "-rf", path }) then
             vim.notify("Removed " .. plugin.name, vim.log.levels.INFO)
-            actions.close(prompt_bufnr)
-            M.open() -- reopen to refresh
+            picker:close()
+            M.open()
           end
         end
-      end, { desc = "Remove selected plugin" })
-
-      -- Update
-      map("i", "<C-u>", function()
-        local selection = action_state.get_selected_entry()
-        if not selection then return end
-        local plugin = selection.value
-
-        if not plugin.installed then
-          vim.notify("Plugin " .. plugin.name .. " is not installed.", vim.log.levels.WARN)
-          return
-        end
-
-        actions.close(prompt_bufnr)
+      end,
+      update_plugin = function(picker, item)
+        if not item then return end
+        local plugin = item.plugin
+        if not plugin.installed then return end
+        picker:close()
         vim.notify("Updating " .. plugin.name .. "...", vim.log.levels.INFO)
         local path = pack_path .. "/" .. plugin.name
-        
         vim.system({ "git", "pull" }, { cwd = path, text = true }, function(result)
           vim.schedule(function()
             if result.code == 0 then
@@ -180,47 +167,22 @@ function M.open(opts)
             end
           end)
         end)
-      end, { desc = "Update selected plugin (git pull)" })
-
-      -- Open GitHub URL in browser
-      map("i", "<C-o>", function()
-        local selection = action_state.get_selected_entry()
-        if not selection then return end
-        local plugin = selection.value
-        execute_command({ "open", plugin.src })
-      end, { desc = "Open GitHub URL in browser" })
-      
-      -- Copy source URL to clipboard
-      map("i", "<C-y>", function()
-        local selection = action_state.get_selected_entry()
-        if not selection then return end
-        local plugin = selection.value
-        vim.fn.setreg("+", plugin.src)
-        vim.notify("Copied " .. plugin.src .. " to clipboard", vim.log.levels.INFO)
-      end, { desc = "Copy plugin source URL to clipboard" })
-
-      -- Toggle enabled/disabled (placeholder for future implementation)
-      map("i", "<C-t>", function()
-         vim.notify("Toggle disabled state not yet implemented in vim.pack", vim.log.levels.WARN)
-      end, { desc = "Toggle plugin enabled state" })
-
-      return true
-    end,
-  }):find()
-end
-
--- Register as extension
-local ok_telescope, telescope = pcall(require, "telescope")
-if ok_telescope then
-  telescope.register_extension {
-    exports = {
-      pack_manager = M.open,
+      end,
+      open_github = function(picker, item)
+        if not item then return end
+        execute_command({ "open", item.plugin.src })
+      end,
+      copy_url = function(picker, item)
+        if not item then return end
+        vim.fn.setreg("+", item.plugin.src)
+        vim.notify("Copied " .. item.plugin.src .. " to clipboard", vim.log.levels.INFO)
+      end,
     },
-  }
+  })
 end
 
 vim.api.nvim_create_user_command("PackManager", function()
   M.open()
-end, { desc = "Open Telescope pack manager" })
+end, { desc = "Open Snacks pack manager" })
 
 return M

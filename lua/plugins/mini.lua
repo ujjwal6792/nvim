@@ -8,55 +8,6 @@ if ok_bracketed then
   mini_bracketed.setup()
 end
 
-local ok_starter, mini_starter = pcall(require, "mini.starter")
-if ok_starter then
-  mini_starter.setup {
-    autoopen = false,
-    evaluate_single = true,
-    items = {
-      mini_starter.sections.builtin_actions(),
-      function()
-        return {
-          { name = "Restore Session", action = "AutoSession restore", section = "Session" },
-        }
-      end,
-      mini_starter.sections.recent_files(8, false, false),
-      mini_starter.sections.recent_files(8, true, false),
-    },
-    content_hooks = {
-      mini_starter.gen_hook.adding_bullet(),
-      mini_starter.gen_hook.aligning("center", "center"),
-    },
-    query_updaters = "",
-  }
-
-  vim.api.nvim_create_autocmd("VimEnter", {
-    group = vim.api.nvim_create_augroup("UserMiniStarter", { clear = true }),
-    once = true,
-    callback = function()
-      if vim.fn.argc() > 0 then
-        return
-      end
-
-      local listed = vim.tbl_filter(function(buf)
-        return vim.bo[buf].buflisted
-      end, vim.api.nvim_list_bufs())
-      local current = vim.api.nvim_get_current_buf()
-      local is_empty = vim.api.nvim_buf_get_name(current) == ""
-        and vim.api.nvim_buf_line_count(current) == 1
-        and vim.api.nvim_buf_get_lines(current, 0, 1, false)[1] == ""
-
-      if #listed <= 1 and is_empty then
-        local dashboard = vim.api.nvim_create_buf(false, true)
-        mini_starter.open(dashboard)
-        if type(current) == "number" and vim.api.nvim_buf_is_valid(current) then
-          pcall(vim.api.nvim_buf_delete, current, {})
-        end
-      end
-    end,
-  })
-end
-
 local ok_move, mini_move = pcall(require, "mini.move")
 if ok_move then
   mini_move.setup {

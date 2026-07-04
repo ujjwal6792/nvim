@@ -1,10 +1,3 @@
-local pickers = require("telescope.pickers")
-local finders = require("telescope.finders")
-local conf = require("telescope.config").values
-local entry_display = require("telescope.pickers.entry_display")
-local previewers = require("telescope.previewers")
-local actions = require("telescope.actions")
-
 local parser = require("tasks-nvim.parser")
 local preview = require("tasks-nvim.preview")
 local picker_actions = require("tasks-nvim.actions")
@@ -39,6 +32,11 @@ local function get_relative_time(completed_at)
 end
 
 function M.open(opts)
+  if not pcall(require, "snacks") then
+    vim.notify("Snacks.nvim is required for tasks-nvim picker", vim.log.levels.ERROR)
+    return
+  end
+  
   opts = opts or {}
   local tasks_file = parser.find_tasks_file()
   if not tasks_file then
@@ -54,7 +52,6 @@ function M.open(opts)
   
   local header = err_or_header
 
-  -- 1. Apply Filter
   local filtered_tasks = {}
   local current_sprint = nil
   for _, task in ipairs(tasks) do
@@ -80,25 +77,16 @@ function M.open(opts)
     end
   end
 
-  -- 2. Sort Helper
   local function sort_tasks(t1, t2)
-    -- Priority P0 > P1 > P2 > P3
     local p1 = t1.priority or "P2"
     local p2 = t2.priority or "P2"
-    if p1 ~= p2 then
-      return p1 < p2
-    end
-    -- Sprint
+    if p1 ~= p2 then return p1 < p2 end
     local s1 = t1.sprint or ""
     local s2 = t2.sprint or ""
-    if s1 ~= s2 then
-      return s1 < s2
-    end
-    -- ID
+    if s1 ~= s2 then return s1 < s2 end
     return (t1.id or "") < (t2.id or "")
   end
 
-  -- 3. Grouping and divider logic
   local entries = {}
   local group_by = opts.group_by or "status"
 
@@ -120,11 +108,8 @@ function M.open(opts)
       
       if #group_tasks > 0 then
         table.sort(group_tasks, sort_tasks)
-        
-        -- Insert separator
         local sep_text = string.format("%s (%d) %s", group.title, #group_tasks, string.rep("─", 45))
         table.insert(entries, { is_separator = true, title = sep_text })
-        
         for _, task in ipairs(group_tasks) do
           table.insert(entries, task)
         end
@@ -139,18 +124,14 @@ function M.open(opts)
     end
     
     local epics = {}
-    for name, _ in pairs(epic_map) do
-      table.insert(epics, name)
-    end
+    for name, _ in pairs(epic_map) do table.insert(epics, name) end
     table.sort(epics)
     
     for _, epic in ipairs(epics) do
       local epic_tasks = epic_map[epic]
       table.sort(epic_tasks, sort_tasks)
-      
       local sep_text = string.format("── ❏ EPIC: %s (%d) %s", epic:upper(), #epic_tasks, string.rep("─", 40))
       table.insert(entries, { is_separator = true, title = sep_text })
-      
       for _, task in ipairs(epic_tasks) do
         table.insert(entries, task)
       end
@@ -164,156 +145,117 @@ function M.open(opts)
     end
     
     local milestones = {}
-    for name, _ in pairs(milestone_map) do
-      table.insert(milestones, name)
-    end
+    for name, _ in pairs(milestone_map) do table.insert(milestones, name) end
     table.sort(milestones)
     
     for _, ms in ipairs(milestones) do
       local ms_tasks = milestone_map[ms]
       table.sort(ms_tasks, sort_tasks)
-      
       local sep_text = string.format("── 🎯 MILESTONE: %s (%d) %s", ms:upper(), #ms_tasks, string.rep("─", 35))
       table.insert(entries, { is_separator = true, title = sep_text })
-      
       for _, task in ipairs(ms_tasks) do
         table.insert(entries, task)
       end
     end
   else
-    -- No grouping
     table.sort(filtered_tasks, sort_tasks)
     for _, task in ipairs(filtered_tasks) do
       table.insert(entries, task)
     end
   end
 
-  -- 4. Entry Display Design
-  local displayer = entry_display.create({
-    separator = "  ",
-    items = {
-      { width = 2 },  -- Icon
-      { width = 2 },  -- Priority
-      { width = 10 }, -- ID
-      { width = 10 }, -- Sprint / Relative time
-      { remaining = true }, -- Title
-    }
-  })
+  local items = {}
+  for _, entry in ipairs(entries) do
+    if entry.is_separator then
+      table.insert(items, {
+        text = entry.title,
+        task = entry,
+      })
+    else
+      local icon = "○"
+      local hl = "String"
+      if entry.status == "in_progress" then icon = "⚡"; hl = "WarningMsg"
+      elseif entry.status == "blocked" then icon = "⛔"; hl = "ErrorMsg"
+      elseif entry.status == "done" then icon = "✓"; hl = "Comment" end
 
-  local function make_display(entry)
-    if entry.value.is_separator then
-      return entry.value.title
+      local time_col = entry.sprint or ""
+      if entry.status == "done" then
+        time_col = get_relative_time(entry.completed_at)
+      end
+      
+      local filter_text = string.format("%s %s %s %s %s %s",
+        entry.id or "", entry.title or "", entry.epic or "", entry.milestone or "", entry.sprint or "", entry.status or ""
+      )
+
+      table.insert(items, {
+        text = filter_text,
+        task = entry,
+        _icon = icon,
+        _icon_hl = hl,
+        _id = entry.id or "",
+        _priority = entry.priority or "P2",
+        _time = time_col,
+        _title = entry.title or "",
+        tasks_file = tasks_file,
+        picker_opts = opts,
+      })
     end
-
-    local task = entry.value
-    local icon = "○"
-    if task.status == "in_progress" then
-      icon = "⚡"
-    elseif task.status == "blocked" then
-      icon = "⛔"
-    elseif task.status == "done" then
-      icon = "✓"
-    end
-
-    local time_col = task.sprint or ""
-    if task.status == "done" then
-      time_col = get_relative_time(task.completed_at)
-    end
-
-    return displayer({
-      icon,
-      task.priority or "P2",
-      task.id,
-      time_col,
-      task.title,
-    })
   end
 
-  -- 5. Build Telescope Picker
-  pickers.new(opts, {
-    prompt_title = string.format("Project Tasks (%s)", header.project or "tasks.jsonl"),
-    finder = finders.new_table({
-      results = entries,
-      entry_maker = function(entry)
-        local ordinal = ""
-        if not entry.is_separator then
-          ordinal = string.format("%s %s %s %s %s %s",
-            entry.id or "",
-            entry.title or "",
-            entry.epic or "",
-            entry.milestone or "",
-            entry.sprint or "",
-            entry.status or ""
-          )
-        end
-        return {
-          value = entry,
-          display = make_display,
-          ordinal = ordinal,
-          tasks_file = tasks_file,
-          picker_opts = opts,
-        }
-      end,
-    }),
-    sorter = conf.generic_sorter(opts),
-    previewer = previewers.new_buffer_previewer({
-      title = "Task Details",
-      define_preview = function(self, entry, status)
-        local bufnr = self.state.bufnr
-        vim.api.nvim_buf_set_option(bufnr, "filetype", "markdown")
-        vim.api.nvim_buf_set_option(bufnr, "bufhidden", "hide")
-        
-        if entry.value.is_separator then
-          vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
-            "",
-            "  " .. entry.value.title,
-            "",
-            "  Use arrow keys to navigate to individual tasks."
-          })
-          return
-        end
-        
-        local card_lines = preview.render_card(entry.value)
-        vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, card_lines)
-        preview.apply_highlights(bufnr, card_lines)
-      end,
-    }),
-    attach_mappings = function(prompt_bufnr, map)
-      actions.select_default:replace(function()
-        picker_actions.jump_to_task(prompt_bufnr)
-      end)
-
-      map("i", "<C-s>", function()
-        picker_actions.cycle_status(prompt_bufnr)
-      end)
-      map("n", "<C-s>", function()
-        picker_actions.cycle_status(prompt_bufnr)
-      end)
-
-      map("i", "<C-e>", function()
-        picker_actions.open_file_target(prompt_bufnr)
-      end)
-      map("n", "<C-e>", function()
-        picker_actions.open_file_target(prompt_bufnr)
-      end)
-
-      map("i", "<C-d>", function()
-        picker_actions.delete_task(prompt_bufnr)
-      end)
-      map("n", "<C-d>", function()
-        picker_actions.delete_task(prompt_bufnr)
-      end)
-
-      map("i", "<C-y>", function()
-        picker_actions.copy_id(prompt_bufnr)
-      end)
-      map("n", "<C-y>", function()
-        picker_actions.copy_id(prompt_bufnr)
-      end)
-
-      return true
+  Snacks.picker.pick({
+    title = string.format("Project Tasks (%s)", header.project or "tasks.jsonl"),
+    items = items,
+    format = function(item, picker)
+      if item.task.is_separator then
+        return { { item.task.title, "Comment" } }
+      end
+      return {
+        { item._icon, item._icon_hl },
+        { " " },
+        { string.format("%-2s", item._priority), "Type" },
+        { " " },
+        { string.format("%-10s", item._id), "Identifier" },
+        { " " },
+        { string.format("%-10s", item._time), "Comment" },
+        { " " },
+        { item._title, item.task.status == "done" and "Comment" or "Normal" }
+      }
     end,
-  }):find()
+    preview = function(ctx)
+      local bufnr = ctx.buf
+      vim.bo[bufnr].filetype = "markdown"
+      if ctx.item.task.is_separator then
+        vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
+          "",
+          "  " .. ctx.item.task.title,
+          "",
+          "  Use arrow keys to navigate to individual tasks."
+        })
+        return
+      end
+      
+      local card_lines = preview.render_card(ctx.item.task)
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, card_lines)
+      preview.apply_highlights(bufnr, card_lines)
+    end,
+    confirm = picker_actions.jump_to_task,
+    win = {
+      input = {
+        keys = {
+          ["<c-s>"] = { "cycle_status", mode = { "i", "n" } },
+          ["<c-e>"] = { "open_file_target", mode = { "i", "n" } },
+          ["<c-d>"] = { "delete_task", mode = { "i", "n" } },
+          ["<c-y>"] = { "copy_id", mode = { "i", "n" } },
+        }
+      }
+    },
+    actions = {
+      cycle_status = picker_actions.cycle_status,
+      open_file_target = picker_actions.open_file_target,
+      delete_task = picker_actions.delete_task,
+      copy_id = picker_actions.copy_id,
+    },
+  })
 end
 
 return M

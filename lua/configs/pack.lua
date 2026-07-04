@@ -12,8 +12,7 @@ M.specs = {
   { src = gh "nvim-treesitter/nvim-treesitter" },
   { src = gh "numToStr/Comment.nvim" },
   { src = gh "JoosepAlviste/nvim-ts-context-commentstring" },
-  { src = gh "nvim-tree/nvim-tree.lua" },
-  { src = gh "nvim-telescope/telescope.nvim" },
+  { src = gh "folke/snacks.nvim" },
   { src = gh "lewis6991/gitsigns.nvim" },
   { src = gh "folke/which-key.nvim" },
 
@@ -30,12 +29,10 @@ M.specs = {
   { src = gh "rafamadriz/friendly-snippets" },
 
   { src = gh "nvim-mini/mini.nvim" },
-  { src = gh "kdheepak/lazygit.nvim" },
+  { src = gh "folke/persistence.nvim" },
   { src = gh "MagicDuck/grug-far.nvim" },
-  { src = gh "rmagatti/auto-session" },
 
   { src = gh "amrbashir/nvim-docs-view" },
-  { src = gh "3rd/image.nvim" },
   { src = gh "3rd/diagram.nvim" },
   { src = gh "OXY2DEV/markview.nvim" },
   { src = gh "vuki656/package-info.nvim" },

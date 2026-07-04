@@ -28,13 +28,56 @@ catppuccin.setup {
     mini = true,
     native_lsp = { enabled = true },
     nvimtree = true,
+    snacks = true,
     treesitter = true,
     which_key = true,
   },
   custom_highlights = function(colors)
     return {
-      NormalFloat = { fg = colors.text, bg = colors.mantle },
-      FloatBorder = { fg = colors.blue, bg = colors.mantle },
+      -- All windows fully transparent - only text visible over wallpaper
+      Normal         = { bg = "NONE" },
+      NormalNC       = { bg = "NONE" },
+      NormalFloat    = { fg = colors.text, bg = "NONE" },
+      FloatBorder    = { fg = colors.surface1, bg = "NONE" },
+
+      -- Snacks internal highlight groups - all transparent
+      SnacksNormal       = { fg = colors.text, bg = "NONE" },
+      SnacksNormalNC     = { fg = colors.subtext0, bg = "NONE" },
+      SnacksWinBar       = { fg = colors.subtext0, bg = "NONE" },
+      SnacksWinSeparator = { fg = colors.surface1, bg = "NONE" },
+      SnacksTitle        = { fg = colors.blue, bg = "NONE", bold = true },
+      SnacksFooter       = { fg = colors.overlay1, bg = "NONE" },
+      SnacksBackdrop     = { bg = "NONE", blend = 0 },
+
+      -- Snacks picker specific
+      SnacksPickerBorder   = { fg = colors.surface1, bg = "NONE" },
+      SnacksPickerTitle    = { fg = colors.blue, bg = "NONE", bold = true },
+      SnacksPickerFooter   = { fg = colors.overlay1, bg = "NONE" },
+      SnacksPickerSelected = { fg = colors.mauve, bg = "NONE", bold = true },
+
+      -- Dashboard transparent
+      SnacksDashboardNormal  = { fg = colors.text, bg = "NONE" },
+      SnacksDashboardHeader  = { fg = colors.blue, bg = "NONE" },
+      SnacksDashboardFooter  = { fg = colors.overlay1, bg = "NONE" },
+      SnacksDashboardTitle   = { fg = colors.blue, bg = "NONE", bold = true },
+      SnacksDashboardSection = { fg = colors.mauve, bg = "NONE" },
+      SnacksDashboardFile    = { fg = colors.text, bg = "NONE" },
+      SnacksDashboardDir     = { fg = colors.subtext0, bg = "NONE" },
+      SnacksDashboardKey     = { fg = colors.peach, bg = "NONE" },
+      SnacksDashboardDesc    = { fg = colors.subtext1, bg = "NONE" },
+
+      -- Statusline fully transparent
+      StatusLine   = { bg = "NONE" },
+      StatusLineNC = { bg = "NONE" },
+      MiniStatuslineModeNormal  = { bg = "NONE", fg = colors.blue,   bold = true },
+      MiniStatuslineModeInsert  = { bg = "NONE", fg = colors.green,  bold = true },
+      MiniStatuslineModeVisual  = { bg = "NONE", fg = colors.mauve,  bold = true },
+      MiniStatuslineModeReplace = { bg = "NONE", fg = colors.red,    bold = true },
+      MiniStatuslineModeCommand = { bg = "NONE", fg = colors.peach,  bold = true },
+      MiniStatuslineDevinfo     = { bg = "NONE", fg = colors.subtext1 },
+      MiniStatuslineFileinfo    = { bg = "NONE", fg = colors.subtext1 },
+      MiniStatuslineFilename    = { bg = "NONE", fg = colors.text },
+      MiniStatuslineInactive    = { bg = "NONE", fg = colors.surface2 },
       Comment = { fg = colors.overlay1, style = { "italic" } },
       ["@comment"] = { fg = colors.overlay1, style = { "italic" } },
       ["@function"] = { fg = colors.blue, style = { "bold" } },

@@ -57,26 +57,26 @@ end, { desc = "buffer close" })
 map("n", "<leader>/", "gcc", { remap = true, desc = "toggle comment" })
 map("v", "<leader>/", "gc", { remap = true, desc = "toggle comment" })
 
-map("n", "<leader><leader>", "<cmd>NvimTreeToggle<CR>", { desc = "nvimtree toggle window" })
-map("n", "<leader>e", "<cmd>NvimTreeFocus<CR>", { desc = "focus nvimtree" })
-map("n", "<leader>we", "<cmd>NvimTreeRefresh<CR>", { desc = "refresh nvimtree" })
-map("n", "<leader>ww", "<cmd>NvimTreeToggle<CR>", { desc = "toggle nvimtree" })
+map("n", "<leader><leader>", function() Snacks.explorer() end, { desc = "Toggle Explorer" })
+map("n", "<leader>e", function() Snacks.explorer() end, { desc = "Focus Explorer" })
+map("n", "<leader>we", function() Snacks.explorer() end, { desc = "Refresh Explorer" })
+map("n", "<leader>ww", function() Snacks.explorer() end, { desc = "Toggle Explorer" })
 
-map("n", "<leader>fw", "<cmd>Telescope live_grep<CR>", { desc = "telescope live grep" })
-map("n", "<leader>fb", "<cmd>Telescope buffers<CR>", { desc = "telescope find buffers" })
-map("n", "<leader>fh", "<cmd>Telescope help_tags<CR>", { desc = "telescope help page" })
-map("n", "<leader>ma", "<cmd>Telescope marks<CR>", { desc = "telescope find marks" })
-map("n", "<leader>fo", "<cmd>Telescope oldfiles<CR>", { desc = "telescope find oldfiles" })
-map("n", "<leader>fz", "<cmd>Telescope current_buffer_fuzzy_find<CR>", { desc = "telescope find in buffer" })
-map("n", "<leader>cm", "<cmd>Telescope git_commits<CR>", { desc = "telescope git commits" })
-map("n", "<leader>gt", "<cmd>Telescope git_status<CR>", { desc = "telescope git status" })
-map("n", "<leader>ff", "<cmd>Telescope find_files<CR>", { desc = "telescope find files" })
-map(
-  "n",
-  "<leader>fa",
-  "<cmd>Telescope find_files follow=true no_ignore=true hidden=true<CR>",
-  { desc = "telescope find all files" }
-)
+map("n", "<leader>fw", function() Snacks.picker.grep() end, { desc = "Live grep" })
+map("n", "<leader>fb", function() Snacks.picker.buffers() end, { desc = "Find buffers" })
+map("n", "<leader>fh", function() Snacks.picker.help() end, { desc = "Help pages" })
+map("n", "<leader>ma", function() Snacks.picker.marks() end, { desc = "Find marks" })
+map("n", "<leader>fo", function() Snacks.picker.recent() end, { desc = "Find oldfiles" })
+map("n", "<leader>fz", function() Snacks.picker.lines() end, { desc = "Find in buffer" })
+map("n", "<leader>cm", function() Snacks.picker.git_commits() end, { desc = "Git commits" })
+map("n", "<leader>gt", function() Snacks.picker.git_status() end, { desc = "Git status" })
+map("n", "<leader>ff", function() Snacks.picker.files() end, { desc = "Find files" })
+map("n", "<leader>fa", function() Snacks.picker.files({ hidden = true, ignored = true }) end, { desc = "Find all files" })
+
+-- Snacks Quick Mappings
+map("n", "<leader>.", function() Snacks.scratch() end, { desc = "Toggle Scratch Buffer" })
+map("n", "<leader>bd", function() Snacks.bufdelete() end, { desc = "Delete Buffer" })
+map("n", "<leader>rn", function() Snacks.rename.rename_file() end, { desc = "Rename File" })
 
 -- Project Manager / tasks.jsonl Plugin Keymaps
 map("n", "<leader>ta", function() require("tasks-nvim").open({ group_by = "status" }) end, { desc = "Tasks: all grouped by status" })
@@ -112,18 +112,10 @@ map({ "n", "t" }, "<A-i>", function()
   require("configs.term").toggle { pos = "float", id = "floatTerm" }
 end, { desc = "terminal toggle floating term" })
 
-map("n", "gt", "<cmd>LazyGit<CR>", { desc = "open lazygit" })
-map("n", "<leader>gf", "<cmd>LazyGitFilter<CR>", { desc = "lazygit commits" })
-map("n", "gG", "<cmd>LazyGitCurrentFile<CR>", { desc = "open lazygit for current" })
-map("n", "<leader>gF", "<cmd>LazyGitFilterCurrentFile<CR>", { desc = "lazygit commits for current" })
-map("n", "<leader>gt", function()
-  local ok, telescope = pcall(require, "telescope")
-  if ok then
-    telescope.extensions.lazygit.lazygit()
-  else
-    vim.cmd "LazyGit"
-  end
-end, { desc = "open lazygit telescope" })
+map("n", "gt", function() Snacks.lazygit() end, { desc = "open lazygit" })
+map("n", "<leader>gf", function() Snacks.lazygit.log() end, { desc = "lazygit log" })
+map("n", "gG", function() Snacks.lazygit.log_file() end, { desc = "lazygit current file" })
+map("n", "<leader>gF", function() Snacks.lazygit.log_file() end, { desc = "lazygit log current" })
 
 map("n", "<leader>gb", "<cmd>Gitsigns blame_line<CR>", { desc = "git blame line" })
 map("n", "<leader>gg", function()
@@ -161,9 +153,9 @@ map("n", "<leader>fR", function()
   require("grug-far").open { prefills = { search = vim.fn.expand "<cword>" } }
 end, { desc = "find and replace word under cursor" })
 
-map("n", "<leader>sr", "<cmd>AutoSession search<CR>", { desc = "session search" })
-map("n", "<leader>ss", "<cmd>AutoSession save<CR>", { desc = "save session" })
-map("n", "<leader>sa", "<cmd>AutoSession toggle<CR>", { desc = "toggle autosave" })
+map("n", "<leader>qs", function() require("persistence").load() end, { desc = "Restore Session" })
+map("n", "<leader>ql", function() require("persistence").load({ last = true }) end, { desc = "Restore Last Session" })
+map("n", "<leader>qd", function() require("persistence").stop() end, { desc = "Don't Save Current Session" })
 map("n", "<leader>dd", "<cmd>DocsViewToggle<CR>", { desc = "docs view toggle" })
 
 map("n", "<leader>mc", "<cmd>Checkbox toggle<CR>", { desc = "markdown checkbox toggle" })

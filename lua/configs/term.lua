@@ -8,7 +8,7 @@ local defaults = {
   winopts = {
     number = false,
     relativenumber = false,
-    winhl = "Normal:Normal,WinSeparator:WinSeparator",
+    winhl = "Normal:NormalFloat,WinSeparator:WinSeparator",
   },
   sizes = { sp = 0.5, vsp = 0.5 },
   float = {
