@@ -90,7 +90,9 @@ function M.open()
         )
         if readme then
           local lines = vim.fn.readfile(readme)
+          vim.bo[ctx.buf].modifiable = true
           vim.api.nvim_buf_set_lines(ctx.buf, 0, -1, false, lines)
+          vim.bo[ctx.buf].modifiable = false
           vim.schedule(function()
             if vim.api.nvim_buf_is_valid(ctx.buf) then
               local ext = readme:match("^.+(%..+)$")
@@ -105,7 +107,9 @@ function M.open()
         end
       end
       local lines = { "No README available (or plugin not installed)." }
+      vim.bo[ctx.buf].modifiable = true
       vim.api.nvim_buf_set_lines(ctx.buf, 0, -1, false, lines)
+      vim.bo[ctx.buf].modifiable = false
     end,
     confirm = function(picker, item)
       local plugin = item.plugin
