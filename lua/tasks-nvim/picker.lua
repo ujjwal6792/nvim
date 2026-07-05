@@ -223,6 +223,7 @@ function M.open(opts)
     end,
     preview = function(ctx)
       local bufnr = ctx.buf
+      vim.bo[bufnr].modifiable = true
       vim.bo[bufnr].filetype = "markdown"
       if ctx.item.task.is_separator then
         vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
@@ -231,12 +232,14 @@ function M.open(opts)
           "",
           "  Use arrow keys to navigate to individual tasks."
         })
+        vim.bo[bufnr].modifiable = false
         return
       end
       
       local card_lines = preview.render_card(ctx.item.task)
       vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, card_lines)
       preview.apply_highlights(bufnr, card_lines)
+      vim.bo[bufnr].modifiable = false
     end,
     confirm = picker_actions.jump_to_task,
     win = {

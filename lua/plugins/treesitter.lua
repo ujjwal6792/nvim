@@ -1,4 +1,4 @@
-local ok, treesitter = pcall(require, "nvim-treesitter.configs")
+local ok, treesitter = pcall(require, "nvim-treesitter.config")
 if not ok then
   return
 end
@@ -37,7 +37,7 @@ vim.treesitter.language.register("bash", "dotenv")
 
 local ts_install = require "nvim-treesitter.install"
 if vim.fn.executable "tree-sitter" == 1 then
-  ts_install.ensure_installed(parsers)
+  ts_install.install(parsers)
 else
   vim.schedule(function()
     vim.notify("Install tree-sitter CLI to enable missing Treesitter parsers and folds", vim.log.levels.WARN)
