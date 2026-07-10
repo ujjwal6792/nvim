@@ -42,6 +42,7 @@ M.specs = {
   { src = gh "saecki/crates.nvim" },
   { src = gh "windwp/nvim-ts-autotag" },
   { src = gh "dsznajder/vscode-es7-javascript-react-snippets" },
+  { src = gh "lmilojevicc/herdr-splits.nvim" },
 }
 
 local ok, err = pcall(vim.pack.add, M.specs, { load = true, confirm = false })

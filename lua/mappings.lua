@@ -11,14 +11,25 @@ map("i", "<C-l>", "<Right>", { desc = "move right" })
 map("i", "<C-j>", "<Down>", { desc = "move down" })
 map("i", "<C-k>", "<Up>", { desc = "move up" })
 
-map("n", "<C-h>", "<C-w>h", { desc = "switch window left" })
-map("n", "<C-l>", "<C-w>l", { desc = "switch window right" })
-map("n", "<C-j>", "<C-w>j", { desc = "switch window down" })
-map("n", "<C-k>", "<C-w>k", { desc = "switch window up" })
-map("n", "<C-Left>", "<C-w>h", { desc = "switch window left" })
-map("n", "<C-Right>", "<C-w>l", { desc = "switch window right" })
-map("n", "<C-Down>", "<C-w>j", { desc = "switch window down" })
-map("n", "<C-Up>", "<C-w>k", { desc = "switch window up" })
+if vim.env.HERDR_ENV == "1" then
+  map("n", "<C-h>", function() require("herdr-splits").move_cursor_left() end, { desc = "switch window left (herdr)" })
+  map("n", "<C-l>", function() require("herdr-splits").move_cursor_right() end, { desc = "switch window right (herdr)" })
+  map("n", "<C-j>", function() require("herdr-splits").move_cursor_down() end, { desc = "switch window down (herdr)" })
+  map("n", "<C-k>", function() require("herdr-splits").move_cursor_up() end, { desc = "switch window up (herdr)" })
+  map("n", "<C-Left>", function() require("herdr-splits").move_cursor_left() end, { desc = "switch window left (herdr)" })
+  map("n", "<C-Right>", function() require("herdr-splits").move_cursor_right() end, { desc = "switch window right (herdr)" })
+  map("n", "<C-Down>", function() require("herdr-splits").move_cursor_down() end, { desc = "switch window down (herdr)" })
+  map("n", "<C-Up>", function() require("herdr-splits").move_cursor_up() end, { desc = "switch window up (herdr)" })
+else
+  map("n", "<C-h>", "<C-w>h", { desc = "switch window left" })
+  map("n", "<C-l>", "<C-w>l", { desc = "switch window right" })
+  map("n", "<C-j>", "<C-w>j", { desc = "switch window down" })
+  map("n", "<C-k>", "<C-w>k", { desc = "switch window up" })
+  map("n", "<C-Left>", "<C-w>h", { desc = "switch window left" })
+  map("n", "<C-Right>", "<C-w>l", { desc = "switch window right" })
+  map("n", "<C-Down>", "<C-w>j", { desc = "switch window down" })
+  map("n", "<C-Up>", "<C-w>k", { desc = "switch window up" })
+end
 
 local function map_if_free(mode, lhs, rhs, opts)
   if vim.fn.maparg(lhs, mode) == "" then
@@ -101,15 +112,27 @@ map("n", "<leader>h", function()
 end, { desc = "terminal new horizontal term" })
 
 map({ "n", "t" }, "<A-v>", function()
-  require("configs.term").toggle { pos = "vsp", id = "vtoggleTerm" }
+  if vim.env.HERDR_ENV == "1" then
+    require("configs.herdr").toggle { mode = "v" }
+  else
+    require("configs.term").toggle { pos = "vsp", id = "vtoggleTerm" }
+  end
 end, { desc = "terminal toggleable vertical term" })
 
 map({ "n", "t" }, "<A-h>", function()
-  require("configs.term").toggle { pos = "sp", id = "htoggleTerm" }
+  if vim.env.HERDR_ENV == "1" then
+    require("configs.herdr").toggle { mode = "h" }
+  else
+    require("configs.term").toggle { pos = "sp", id = "htoggleTerm" }
+  end
 end, { desc = "terminal toggleable horizontal term" })
 
 map({ "n", "t" }, "<A-i>", function()
-  require("configs.term").toggle { pos = "float", id = "floatTerm" }
+  if vim.env.HERDR_ENV == "1" then
+    require("configs.herdr").toggle { mode = "i" }
+  else
+    require("configs.term").toggle { pos = "float", id = "floatTerm" }
+  end
 end, { desc = "terminal toggle floating term" })
 
 map("n", "gt", function() Snacks.lazygit() end, { desc = "open lazygit" })

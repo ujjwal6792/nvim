@@ -9,6 +9,8 @@ require "options"
 require "autocwd"
 require "configs.pack"
 require "plugins._loader"
+require("configs.highlights").setup()
+require("configs.tabline").setup()
 require "configs.conform"
 require "configs.lspconfig"
 require "configs.lint"

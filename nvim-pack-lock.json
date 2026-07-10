@@ -41,6 +41,10 @@
       "rev": "c69859c1d5427ab5fc7ed12380ab521b4e336691",
       "src": "https://github.com/MagicDuck/grug-far.nvim"
     },
+    "herdr-splits.nvim": {
+      "rev": "64e8f9b710655aeb7fbb715fac64a5063a23abc2",
+      "src": "https://github.com/lmilojevicc/herdr-splits.nvim.git"
+    },
     "image.nvim": {
       "rev": "44e07129cd0ea0c60afa7a1991d35b5765b51a6b",
       "src": "https://github.com/3rd/image.nvim"
