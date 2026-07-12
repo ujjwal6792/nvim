@@ -40,7 +40,7 @@ function M.apply()
 
   -- General UI overrides for a darker frosted glass look
   vim.api.nvim_set_hl(0, "Normal", { fg = c.text, bg = NONE })
-  vim.api.nvim_set_hl(0, "NormalNC", { fg = c.text, bg = NONE })
+  vim.api.nvim_set_hl(0, "NormalNC", { fg = c.surface1, bg = NONE })
   vim.api.nvim_set_hl(0, "CursorLine", { bg = c.surface0 })
   vim.api.nvim_set_hl(0, "CursorLineNr", { fg = c.peach, bold = true }) -- Warm peach for current line number
   vim.api.nvim_set_hl(0, "LineNr", { fg = c.overlay0 })

@@ -128,11 +128,7 @@ map({ "n", "t" }, "<A-h>", function()
 end, { desc = "terminal toggleable horizontal term" })
 
 map({ "n", "t" }, "<A-i>", function()
-  if vim.env.HERDR_ENV == "1" then
-    require("configs.herdr").toggle { mode = "i" }
-  else
-    require("configs.term").toggle { pos = "float", id = "floatTerm" }
-  end
+  require("configs.term").toggle { pos = "float", id = "floatTerm" }
 end, { desc = "terminal toggle floating term" })
 
 map("n", "gt", function() Snacks.lazygit() end, { desc = "open lazygit" })

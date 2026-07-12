@@ -13,7 +13,7 @@ which_key.setup {
     -- Link highlights straight to your transparent NormalFloat rules
     wo = {
       winblend = 0,
-      winhighlight = "Normal:Normal,NormalFloat:Normal,FloatBorder:FloatBorder",
+      winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder",
     },
   },
 }
