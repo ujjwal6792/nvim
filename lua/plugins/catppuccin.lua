@@ -56,6 +56,8 @@ catppuccin.setup {
       EndOfBuffer = { bg = "NONE" },
 
       -- Snacks internal highlight groups
+      SnacksTerminalNormal = { fg = "NONE", bg = "NONE" },
+      SnacksTerminalBorder = { fg = "#a1a1aa", bg = "NONE" },
       SnacksNormal = { fg = colors.text, bg = "NONE" },
       SnacksNormalNC = { fg = colors.subtext0, bg = "NONE" },
       SnacksWinBar = { fg = colors.subtext0, bg = "NONE" },

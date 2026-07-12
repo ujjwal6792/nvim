@@ -135,7 +135,7 @@ snacks.setup {
     input = { wo = { winblend = 0, winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder" } },
     picker = { backdrop = false, wo = { winblend = 0, winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder" } },
     explorer = { backdrop = false, wo = { winblend = 0, winhighlight = "Normal:Normal,FloatBorder:FloatBorder" } },
-    terminal = { backdrop = false, wo = { winblend = 0, winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder" } },
+    terminal = { backdrop = false, wo = { winblend = 85, winhighlight = "Normal:SnacksTerminalNormal,NormalFloat:SnacksTerminalNormal,FloatBorder:SnacksTerminalBorder" } },
     lazygit = { backdrop = false, wo = { winblend = 0, winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder" } },
   },
 }
