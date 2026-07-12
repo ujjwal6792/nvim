@@ -13,7 +13,7 @@ local protected_buftypes = {
 }
 
 local function is_starter_buffer(buf)
-  return type(buf) == "number" and vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].filetype == "ministarter"
+  return type(buf) == "number" and vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].filetype == "snacks_dashboard"
 end
 
 local function is_protected_buffer(buf)
@@ -105,17 +105,15 @@ local function delete_buffer_if_valid(buf)
 end
 
 local function open_dashboard(replace_buf)
-  local ok, starter = pcall(require, "mini.starter")
-  if ok then
-    local dashboard = vim.api.nvim_create_buf(false, true)
-    starter.open(dashboard)
-    delete_buffer_if_valid(replace_buf)
+  delete_buffer_if_valid(replace_buf)
+  local ok, snacks = pcall(require, "snacks")
+  if ok and snacks.dashboard then
+    snacks.dashboard.open()
     return
   end
 
   vim.cmd "enew"
   vim.bo.buflisted = false
-  delete_buffer_if_valid(replace_buf)
 end
 
 function M.keep_nvimtree_width()
