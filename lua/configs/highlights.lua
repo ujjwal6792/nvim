@@ -76,8 +76,8 @@ function M.apply()
   vim.api.nvim_set_hl(0, "UserStatusLsp", { fg = c.mauve, bg = NONE, bold = true })
 
   -- UI Borders and popups (frosted glass: darker backgrounds + blend)
-  vim.api.nvim_set_hl(0, "FloatBorder", { fg = c.pink, bg = c.mantle })
-  vim.api.nvim_set_hl(0, "NormalFloat", { fg = c.text, bg = c.mantle })
+  vim.api.nvim_set_hl(0, "FloatBorder", { fg = c.pink, bg = "none" })
+  vim.api.nvim_set_hl(0, "NormalFloat", { fg = c.text, bg = "none" })
   vim.api.nvim_set_hl(0, "Pmenu", { fg = c.text, bg = c.mantle })
   vim.api.nvim_set_hl(0, "PmenuSel", { fg = c.crust, bg = c.pink, bold = true })
 

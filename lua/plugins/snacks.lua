@@ -135,7 +135,24 @@ snacks.setup {
     input = { wo = { winblend = 0, winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder" } },
     picker = { backdrop = false, wo = { winblend = 0, winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder" } },
     explorer = { backdrop = false, wo = { winblend = 0, winhighlight = "Normal:Normal,FloatBorder:FloatBorder" } },
-    terminal = { backdrop = false, wo = { winblend = 0, winhighlight = "Normal:Normal" } },
-    lazygit = { backdrop = false, wo = { winblend = 0, winhighlight = "Normal:Normal" } },
+    terminal = { backdrop = false, wo = { winblend = 0, winhighlight = "Normal:Normal,NormalFloat:Normal,FloatBorder:FloatBorder" } },
+    lazygit = { backdrop = false, wo = { winblend = 0, winhighlight = "Normal:Normal,NormalFloat:Normal,FloatBorder:FloatBorder" } },
   },
 }
+
+-- Automatically close Snacks terminal windows when the process exits
+vim.api.nvim_create_autocmd("TermClose", {
+  pattern = "*",
+  callback = function(ev)
+    if vim.b[ev.buf].snacks_terminal then
+      vim.schedule(function()
+        if vim.api.nvim_buf_is_valid(ev.buf) then
+          local win = vim.fn.bufwinid(ev.buf)
+          if win ~= -1 then
+            pcall(vim.api.nvim_win_close, win, true)
+          end
+        end
+      end)
+    end
+  end,
+})
