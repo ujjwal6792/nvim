@@ -3,4 +3,17 @@ if not ok then
   return
 end
 
-which_key.setup()
+which_key.setup {
+  win = {
+    -- Prevent which-key from falling back to solid backgrounds
+    no_overlap = true,
+    padding = { 1, 2 },
+    title = true,
+    title_pos = "center",
+    -- Link highlights straight to your transparent NormalFloat rules
+    wo = {
+      winblend = 0,
+      winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder",
+    },
+  },
+}
