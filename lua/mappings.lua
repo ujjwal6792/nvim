@@ -69,9 +69,30 @@ map("n", "<leader>/", "gcc", { remap = true, desc = "toggle comment" })
 map("v", "<leader>/", "gc", { remap = true, desc = "toggle comment" })
 
 map("n", "<leader><leader>", function() Snacks.explorer() end, { desc = "Toggle Explorer" })
-map("n", "<leader>e", function() Snacks.explorer() end, { desc = "Focus Explorer" })
-map("n", "<leader>we", function() Snacks.explorer() end, { desc = "Refresh Explorer" })
 map("n", "<leader>ww", function() Snacks.explorer() end, { desc = "Toggle Explorer" })
+
+map("n", "<leader>e", function()
+  local explorer_pickers = Snacks.picker.get({ source = "explorer" })
+  if #explorer_pickers == 0 then
+    Snacks.explorer()
+  else
+    local explorer = explorer_pickers[1]
+    if explorer:is_focused() then
+      explorer:close()
+    else
+      explorer:focus()
+    end
+  end
+end, { desc = "Focus or Toggle Explorer" })
+
+map("n", "<leader>we", function()
+  local explorer_pickers = Snacks.picker.get({ source = "explorer" })
+  if #explorer_pickers == 0 then
+    Snacks.explorer()
+  else
+    explorer_pickers[1]:find()
+  end
+end, { desc = "Refresh Explorer" })
 
 map("n", "<leader>fw", function() Snacks.picker.grep() end, { desc = "Live grep" })
 map("n", "<leader>fb", function() Snacks.picker.buffers() end, { desc = "Find buffers" })
