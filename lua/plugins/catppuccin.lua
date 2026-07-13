@@ -57,31 +57,33 @@ catppuccin.setup {
 
       -- Snacks internal highlight groups
       SnacksTerminalNormal = { fg = "NONE", bg = "NONE" },
-      SnacksTerminalBorder = { fg = "#a1a1aa", bg = "NONE" },
+      SnacksTerminalBorder = { fg = colors.subtext0, bg = "NONE" },
       SnacksNormal = { fg = colors.text, bg = "NONE" },
       SnacksNormalNC = { fg = colors.subtext0, bg = "NONE" },
       SnacksWinBar = { fg = colors.subtext0, bg = "NONE" },
       SnacksWinSeparator = { fg = colors.surface1, bg = "NONE" },
       SnacksTitle = { fg = colors.blue, bg = "NONE", bold = true },
-      SnacksFooter = { fg = colors.overlay1, bg = "NONE" },
+      SnacksFooter = { fg = colors.subtext0, bg = "NONE" },
       SnacksBackdrop = { bg = "NONE", blend = 0 },
 
       -- Snacks picker layouts (Corrected names for full transparency)
       SnacksPicker = { fg = colors.text, bg = "NONE" },
       SnacksPickerBorder = { fg = colors.surface1, bg = "NONE" },
       SnacksPickerTitle = { fg = colors.blue, bg = "NONE", bold = true },
-      SnacksPickerFooter = { fg = colors.overlay1, bg = "NONE" },
+      SnacksPickerFooter = { fg = colors.subtext0, bg = "NONE" },
       SnacksPickerInput = { fg = colors.text, bg = "NONE" },
       SnacksPickerList = { fg = colors.text, bg = "NONE" },
       SnacksPickerPreview = { fg = colors.text, bg = "NONE" },
       SnacksPickerSelected = { fg = colors.mauve, bg = "NONE", bold = true },
       SnacksPickerSearch = { bg = "NONE" },
       SnacksPickerMatch = { fg = colors.blue, bold = true },
+      SnacksPickerPathHidden = { fg = colors.subtext0 },
+      SnacksPickerPathIgnored = { fg = colors.subtext0 },
 
       -- Dashboard transparent fields
       SnacksDashboardNormal = { fg = colors.text, bg = "NONE" },
       SnacksDashboardHeader = { fg = colors.blue, bg = "NONE" },
-      SnacksDashboardFooter = { fg = colors.overlay1, bg = "NONE" },
+      SnacksDashboardFooter = { fg = colors.subtext0, bg = "NONE" },
       SnacksDashboardTitle = { fg = colors.blue, bg = "NONE", bold = true },
       SnacksDashboardSection = { fg = colors.mauve, bg = "NONE" },
       SnacksDashboardFile = { fg = colors.text, bg = "NONE" },
@@ -109,8 +111,8 @@ catppuccin.setup {
       WhichKeyFloat = { bg = "NONE" },
 
       -- Your custom syntax coloring layout
-      Comment = { fg = colors.overlay1, style = { "italic" } },
-      ["@comment"] = { fg = colors.overlay1, style = { "italic" } },
+      Comment = { fg = colors.overlay2, style = { "italic" } },
+      ["@comment"] = { fg = colors.overlay2, style = { "italic" } },
       ["@function"] = { fg = colors.blue, style = { "bold" } },
       ["@function.builtin"] = { fg = colors.blue, style = { "bold", "italic" } },
       ["@function.call"] = { fg = colors.blue, style = { "bold" } },
@@ -134,7 +136,7 @@ catppuccin.setup {
       ["@type.builtin"] = { fg = colors.yellow, style = { "italic" } },
       ["@operator"] = { fg = colors.sky },
       ["@punctuation.bracket"] = { fg = colors.overlay2 },
-      ["@punctuation.delimiter"] = { fg = colors.overlay2 },
+      ["@punctuation.delimiter"] = { fg = colors.overylay2 },
       ["@tag"] = { fg = colors.red },
       ["@tag.attribute"] = { fg = colors.yellow, style = { "italic" } },
       ["@tag.delimiter"] = { fg = colors.sky },

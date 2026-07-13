@@ -109,6 +109,7 @@ snacks.setup {
     enabled = true,
     sources = {
       explorer = {
+        hidden = true,
         actions = {
           explorer_cut = explorer_cut,
           explorer_cut_paste = explorer_cut_paste,
