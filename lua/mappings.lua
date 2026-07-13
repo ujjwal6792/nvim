@@ -76,14 +76,9 @@ map("n", "<leader>e", function()
   if #explorer_pickers == 0 then
     Snacks.explorer()
   else
-    local explorer = explorer_pickers[1]
-    if explorer:is_focused() then
-      explorer:close()
-    else
-      explorer:focus()
-    end
+    explorer_pickers[1]:focus()
   end
-end, { desc = "Focus or Toggle Explorer" })
+end, { desc = "Focus Explorer" })
 
 map("n", "<leader>we", function()
   local explorer_pickers = Snacks.picker.get({ source = "explorer" })
@@ -107,7 +102,6 @@ map("n", "<leader>fa", function() Snacks.picker.files({ hidden = true, ignored =
 
 -- Snacks Quick Mappings
 map("n", "<leader>.", function() Snacks.scratch() end, { desc = "Toggle Scratch Buffer" })
-map("n", "<leader>bd", function() Snacks.bufdelete() end, { desc = "Delete Buffer" })
 map("n", "<leader>rn", function() Snacks.rename.rename_file() end, { desc = "Rename File" })
 
 -- Project Manager / tasks.jsonl Plugin Keymaps
