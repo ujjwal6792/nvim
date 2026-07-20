@@ -12,6 +12,7 @@ M.specs = {
   { src = gh "nvim-treesitter/nvim-treesitter" },
   { src = gh "numToStr/Comment.nvim" },
   { src = gh "JoosepAlviste/nvim-ts-context-commentstring" },
+  { src = gh "nvim-tree/nvim-tree.lua" },
   { src = gh "folke/snacks.nvim" },
   { src = gh "lewis6991/gitsigns.nvim" },
   { src = gh "folke/which-key.nvim" },
