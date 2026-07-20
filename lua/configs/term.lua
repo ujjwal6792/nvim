@@ -175,6 +175,13 @@ api.nvim_create_autocmd("TermClose", {
         terms[id] = nil
       end
     end
+    if vim.api.nvim_buf_is_valid(args.buf) then
+      vim.bo[args.buf].bufhidden = "wipe"
+      local win = vim.fn.bufwinid(args.buf)
+      if win ~= -1 then
+        vim.api.nvim_win_close(win, true)
+      end
+    end
   end,
 })
 

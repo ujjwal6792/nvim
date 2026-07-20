@@ -127,7 +127,7 @@ map({ "n", "t" }, "<A-h>", function()
 end, { desc = "terminal toggleable horizontal term" })
 
 map({ "n", "t" }, "<A-i>", function()
-  Snacks.terminal.toggle(nil, { win = { position = "float", border = "single" } })
+  require("configs.term").toggle { pos = "float", id = "floatTerm" }
 end, { desc = "terminal toggle floating term" })
 
 map("n", "gt", function() Snacks.lazygit() end, { desc = "open lazygit" })
