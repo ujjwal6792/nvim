@@ -6,6 +6,6 @@ end
 persistence.setup({
   -- default options
   dir = vim.fn.stdpath("state") .. "/sessions/",
-  need = 1,
+  need = 2,
   branch = true,
 })

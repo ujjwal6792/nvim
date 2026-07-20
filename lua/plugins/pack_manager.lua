@@ -19,7 +19,7 @@ end
 
 local function is_installed(name)
   local path = pack_path .. "/" .. name
-  return vim.loop.fs_stat(path) ~= nil
+  return vim.uv.fs_stat(path) ~= nil
 end
 
 local function get_plugins()
@@ -83,10 +83,10 @@ function M.open()
       if plugin.installed then
         local path = pack_path .. "/" .. plugin.name
         local readme = (
-            vim.loop.fs_stat(path .. "/README.md") and (path .. "/README.md") or
-            vim.loop.fs_stat(path .. "/README.mdx") and (path .. "/README.mdx") or
-            vim.loop.fs_stat(path .. "/readme.md") and (path .. "/readme.md") or
-            vim.loop.fs_stat(path .. "/README.MD") and (path .. "/README.MD")
+            vim.uv.fs_stat(path .. "/README.md") and (path .. "/README.md") or
+            vim.uv.fs_stat(path .. "/README.mdx") and (path .. "/README.mdx") or
+            vim.uv.fs_stat(path .. "/readme.md") and (path .. "/readme.md") or
+            vim.uv.fs_stat(path .. "/README.MD") and (path .. "/README.MD")
         )
         if readme then
           local lines = vim.fn.readfile(readme)
@@ -146,14 +146,18 @@ function M.open()
           return
         end
         local path = pack_path .. "/" .. plugin.name
-        local choice = vim.fn.confirm("Delete plugin " .. plugin.name .. "?", "&Yes\n&No", 2)
-        if choice == 1 then
-          if execute_command({ "rm", "-rf", path }) then
-            vim.notify("Removed " .. plugin.name, vim.log.levels.INFO)
-            picker:close()
-            M.open()
+        vim.ui.select({ "Yes", "No" }, {
+          prompt = "Delete plugin " .. plugin.name .. "?",
+          format_item = function(item) return item end,
+        }, function(choice)
+          if choice == "Yes" then
+            if execute_command({ "rm", "-rf", path }) then
+              vim.notify("Removed " .. plugin.name, vim.log.levels.INFO)
+              picker:close()
+              M.open()
+            end
           end
-        end
+        end)
       end,
       update_plugin = function(picker, item)
         if not item then return end

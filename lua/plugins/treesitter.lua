@@ -28,21 +28,14 @@ local parsers = {
 }
 
 treesitter.setup {
+  ensure_installed = parsers,
   install_dir = vim.fn.stdpath "data" .. "/site",
-  -- Depending on nvim-treesitter version, you might also want ensure_installed here
 }
 vim.treesitter.language.register("json", "jsonl")
 vim.treesitter.language.register("json", "jsonld")
 vim.treesitter.language.register("bash", "dotenv")
 
-local ts_install = require "nvim-treesitter.install"
-if vim.fn.executable "tree-sitter" == 1 then
-  ts_install.install(parsers)
-else
-  vim.schedule(function()
-    vim.notify("Install tree-sitter CLI to enable missing Treesitter parsers and folds", vim.log.levels.WARN)
-  end)
-end
+-- ensure_installed above handles parser installation automatically
 
 vim.api.nvim_create_autocmd("FileType", {
   group = vim.api.nvim_create_augroup("UserTreesitter", { clear = true }),

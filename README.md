@@ -7,7 +7,7 @@ formatting, Blink completion, and a small set of local UI/window helpers.
 
 - `init.lua` loads the config entrypoints.
 - `lua/configs/pack.lua` declares plugins for `vim.pack`.
-- `lua/configs/ui.lua` configures UI plugins and shared behavior.
+- `lua/configs/highlights.lua` holds theme overrides and UI highlights.
 - `lua/configs/lspconfig.lua` defines native LSP servers.
 - `lua/configs/conform.lua` keeps formatting repo-aware.
 - `lua/configs/buffers.lua`, `tabline.lua`, `term.lua`, and `highlights.lua`

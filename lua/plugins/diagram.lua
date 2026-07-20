@@ -59,7 +59,10 @@ markdown_integration.query_buffer_diagrams = function(bufnr)
 
         -- Ensure there is a line after the code block to attach the image to
         if end_row >= line_count - 1 then
-          vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "" })
+          local last_line = vim.api.nvim_buf_get_lines(bufnr, -1, -1, false)[1] or ""
+          if last_line ~= "" then
+            vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "" })
+          end
         end
 
         -- Fold the code block (collapsing it to 1 line)

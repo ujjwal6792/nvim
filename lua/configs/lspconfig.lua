@@ -104,9 +104,6 @@ vim.lsp.config("astro", {
   root_markers = { "astro.config.js", "astro.config.mjs", "astro.config.ts", "package.json", ".git" },
   init_options = {
     configuration = {},
-    typescript = {
-      serverPath = vim.fs.normalize "~/.nvm/versions/node/v19.9.0/lib/node_modules/typescript/lib/tsserverlibrary.js",
-    },
   },
 })
 

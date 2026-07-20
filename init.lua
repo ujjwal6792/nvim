@@ -4,7 +4,10 @@ vim.g.maplocalleader = " "
 _G.dump = function(...)
   print(vim.inspect(...))
 end
-require("vim._core.ui2").enable {}
+local ok_ui, ui = pcall(require, "vim.ui")
+if ok_ui and ui.enable then
+  ui.enable {}
+end
 require "options"
 require "autocwd"
 require "configs.pack"

@@ -24,7 +24,6 @@ M.specs = {
   { src = gh "nvim-neotest/nvim-nio" },
   { src = gh "theHamsta/nvim-dap-virtual-text" },
   { src = gh "jay-babu/mason-nvim-dap.nvim" },
-  { src = gh "neovim/nvim-lspconfig" },
   { src = gh "stevearc/conform.nvim" },
   { src = gh "saghen/blink.cmp", version = "v1" },
   { src = gh "rafamadriz/friendly-snippets" },
