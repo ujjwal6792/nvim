@@ -68,10 +68,25 @@ end, { desc = "buffer close" })
 map("n", "<leader>/", "gcc", { remap = true, desc = "toggle comment" })
 map("v", "<leader>/", "gc", { remap = true, desc = "toggle comment" })
 
-map("n", "<leader><leader>", "<cmd>NvimTreeToggle<CR>", { desc = "nvimtree toggle window" })
+local function toggle_nvimtree()
+  local ok, api = pcall(require, "nvim-tree.api")
+  if not ok then
+    return
+  end
+
+  if api.tree.is_visible() then
+    api.tree.close()
+    require("configs.buffers").focus_work_window()
+  else
+    api.tree.open { focus = true, find_file = true }
+    require("configs.buffers").keep_nvimtree_width()
+  end
+end
+
+map("n", "<leader><leader>", toggle_nvimtree, { desc = "nvimtree toggle window" })
 map("n", "<leader>e", "<cmd>NvimTreeFocus<CR>", { desc = "focus nvimtree" })
 map("n", "<leader>we", "<cmd>NvimTreeRefresh<CR>", { desc = "refresh nvimtree" })
-map("n", "<leader>ww", "<cmd>NvimTreeToggle<CR>", { desc = "toggle nvimtree" })
+map("n", "<leader>ww", toggle_nvimtree, { desc = "toggle nvimtree" })
 
 map("n", "<leader>fw", function() Snacks.picker.grep() end, { desc = "Live grep" })
 map("n", "<leader>fb", function() Snacks.picker.buffers() end, { desc = "Find buffers" })

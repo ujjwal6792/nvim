@@ -141,6 +141,12 @@ function M.focus_work_window()
     return wins[1]
   end
 
+  local starters = starter_windows()
+  if #starters > 0 then
+    vim.api.nvim_set_current_win(starters[1])
+    return starters[1]
+  end
+
   M.keep_nvimtree_width()
 end
 

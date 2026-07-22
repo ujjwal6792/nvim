@@ -66,7 +66,7 @@ function M.open()
   end
 
   Snacks.picker.pick({
-    title = "Pack Manager (Press ? for actions)",
+    title = "󰏖 Pack Manager (Press ? for actions)",
     items = items,
     format = function(item, picker)
       local plugin = item.plugin
