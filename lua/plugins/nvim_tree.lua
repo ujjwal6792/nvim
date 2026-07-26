@@ -56,7 +56,7 @@ nvim_tree.setup {
         end,
         exclude = {
           filetype = { "NvimTree", "notify", "lazy", "qf", "diff", "fugitive", "fugitiveblame" },
-          buftype = { "nofile", "terminal", "help", "prompt", "quickfix" },
+          buftype = { "terminal", "help", "prompt", "quickfix" },
         },
       },
     },

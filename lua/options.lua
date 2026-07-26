@@ -31,8 +31,8 @@ o.foldlevelstart = 99
 o.foldenable = true
 
 opt.fillchars = { eob = " " }
-opt.foldmethod = "expr"
-opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+opt.foldmethod = "manual"
+opt.foldexpr = "0"
 opt.shortmess:append "sI"
 opt.signcolumn = "yes"
 opt.sessionoptions = "blank,buffers,folds,help,tabpages,winsize,winpos,localoptions"

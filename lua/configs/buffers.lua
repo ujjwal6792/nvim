@@ -105,15 +105,23 @@ local function delete_buffer_if_valid(buf)
 end
 
 local function open_dashboard(replace_buf)
-  delete_buffer_if_valid(replace_buf)
+  local win = vim.api.nvim_get_current_win()
   local ok, snacks = pcall(require, "snacks")
   if ok and snacks.dashboard then
-    snacks.dashboard.open()
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_win_set_buf(win, buf)
+    snacks.dashboard.open({ win = win, buf = buf })
+    if replace_buf and replace_buf ~= buf then
+      delete_buffer_if_valid(replace_buf)
+    end
     return
   end
 
   vim.cmd "enew"
   vim.bo.buflisted = false
+  if replace_buf then
+    delete_buffer_if_valid(replace_buf)
+  end
 end
 
 function M.keep_nvimtree_width()
@@ -258,65 +266,17 @@ function M.close_current()
     else
       M.focus_work_window()
     end
-    vim.cmd.bdelete(current)
+    delete_buffer_if_valid(current)
     M.keep_nvimtree_width()
     return
   end
 
   if target then
     vim.api.nvim_win_set_buf(current_win, target)
-  else
-    local nvim_wins = nvimtree_windows()
-    if #nvim_wins == 0 then
-      open_dashboard(current)
-      return
-    end
-
     delete_buffer_if_valid(current)
-    vim.api.nvim_set_current_win(nvim_wins[1])
-
-    local timer = vim.uv.new_timer()
-    local closed = false
-
-    local function cleanup()
-      if closed then return end
-      closed = true
-      if timer and not timer:is_closing() then
-        timer:stop()
-        timer:close()
-      end
-    end
-
-    local timer_cb = vim.schedule_wrap(function()
-      if closed then return end
-      cleanup()
-      close_nvimtree_windows()
-      open_dashboard(current)
-    end)
-
-    vim.schedule(function()
-      local nvim_buf = vim.api.nvim_win_get_buf(nvim_wins[1])
-      vim.api.nvim_create_autocmd("CursorMoved", {
-        buffer = nvim_buf,
-        callback = function()
-          if closed then return end
-          if timer and not timer:is_closing() then
-            timer:stop()
-            timer:start(5000, 0, timer_cb)
-          end
-        end,
-      })
-      vim.api.nvim_create_autocmd("BufEnter", {
-        callback = cleanup,
-        once = true,
-      })
-    end)
-
-    timer:start(2000, 0, timer_cb)
-    return
+  else
+    open_dashboard(current)
   end
-
-  vim.cmd.bdelete(current)
   M.keep_nvimtree_width()
 end
 

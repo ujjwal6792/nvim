@@ -37,11 +37,19 @@ vim.treesitter.language.register("bash", "dotenv")
 
 -- ensure_installed above handles parser installation automatically
 
+_G.safe_treesitter_foldexpr = function(lnum)
+  local ok, res = pcall(vim.treesitter.foldexpr, lnum)
+  if ok and res then
+    return res
+  end
+  return "0"
+end
+
 vim.api.nvim_create_autocmd("FileType", {
   group = vim.api.nvim_create_augroup("UserTreesitter", { clear = true }),
   callback = function(args)
     if pcall(vim.treesitter.start, args.buf) then
-      vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+      vim.wo.foldexpr = "v:lua.safe_treesitter_foldexpr()"
       vim.wo.foldmethod = "expr"
       vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
     end

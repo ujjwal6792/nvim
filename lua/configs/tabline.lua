@@ -108,31 +108,39 @@ function M.make()
     table.insert(parts, "%#UserTablineTree#" .. string.rep(" ", offset))
   end
 
-  for _, buf in ipairs(listed_buffers()) do
-    local hl
-    if not focused_work_buffer then
-      hl = vim.bo[buf].modified and "UserTablineModifiedFaded" or "UserTablineFaded"
-    elseif buf == current then
-      hl = vim.bo[buf].modified and "UserTablineModifiedCurrent" or "UserTablineCurrent"
-    elseif is_visible(buf) then
-      hl = "UserTablineVisible"
-    else
-      hl = vim.bo[buf].modified and "UserTablineModified" or "UserTablineHidden"
-    end
+  local buflist = listed_buffers()
+  if #buflist == 0 then
+    local name = vim.api.nvim_buf_get_name(current)
+    local ft = vim.bo[current].filetype
+    local label = (ft == "snacks_dashboard" or ft == "") and "Dashboard" or (name == "" and "[No Name]" or vim.fn.fnamemodify(name, ":t"))
+    table.insert(parts, "%#UserTablineCurrent#  " .. label .. " %#UserTablineSeparator# ")
+  else
+    for _, buf in ipairs(buflist) do
+      local hl
+      if not focused_work_buffer then
+        hl = vim.bo[buf].modified and "UserTablineModifiedFaded" or "UserTablineFaded"
+      elseif buf == current then
+        hl = vim.bo[buf].modified and "UserTablineModifiedCurrent" or "UserTablineCurrent"
+      elseif is_visible(buf) then
+        hl = "UserTablineVisible"
+      else
+        hl = vim.bo[buf].modified and "UserTablineModified" or "UserTablineHidden"
+      end
 
-    table.insert(parts, "%#" .. hl .. "#")
-    table.insert(parts, "%" .. buf .. "@UserTablineSwitchBuffer@")
-    table.insert(parts, "  " .. buffer_label(buf):gsub("%%", "%%%%") .. " ")
-    table.insert(parts, "%X")
-    if focused_work_buffer and buf == current then
-      table.insert(parts, "%#UserTablineClose#")
-      table.insert(parts, "%" .. buf .. "@UserTablineCloseBuffer@")
-      table.insert(parts, " 󰅖 ")
+      table.insert(parts, "%#" .. hl .. "#")
+      table.insert(parts, "%" .. buf .. "@UserTablineSwitchBuffer@")
+      table.insert(parts, "  " .. buffer_label(buf):gsub("%%", "%%%%") .. " ")
       table.insert(parts, "%X")
-    else
-      table.insert(parts, " ")
+      if focused_work_buffer and buf == current then
+        table.insert(parts, "%#UserTablineClose#")
+        table.insert(parts, "%" .. buf .. "@UserTablineCloseBuffer@")
+        table.insert(parts, " 󰅖 ")
+        table.insert(parts, "%X")
+      else
+        table.insert(parts, " ")
+      end
+      table.insert(parts, "%#UserTablineSeparator# ")
     end
-    table.insert(parts, "%#UserTablineSeparator# ")
   end
 
   table.insert(parts, "%#UserTablineFill#%=")

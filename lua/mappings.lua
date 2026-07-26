@@ -84,7 +84,22 @@ local function toggle_nvimtree()
 end
 
 map("n", "<leader><leader>", toggle_nvimtree, { desc = "nvimtree toggle window" })
-map("n", "<leader>e", "<cmd>NvimTreeFocus<CR>", { desc = "focus nvimtree" })
+map("n", "<leader>e", function()
+  local ok, api = pcall(require, "nvim-tree.api")
+  if not ok then
+    vim.cmd "NvimTreeToggle"
+    return
+  end
+  if api.tree.is_visible() then
+    if vim.bo.filetype == "NvimTree" then
+      api.tree.close()
+    else
+      api.tree.focus()
+    end
+  else
+    api.tree.open()
+  end
+end, { desc = "toggle or focus nvimtree" })
 map("n", "<leader>we", "<cmd>NvimTreeRefresh<CR>", { desc = "refresh nvimtree" })
 map("n", "<leader>ww", toggle_nvimtree, { desc = "toggle nvimtree" })
 

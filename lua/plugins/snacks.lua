@@ -32,20 +32,38 @@ snacks.setup {
   explorer = {
     enabled = false,
   },
-  image = { enabled = true },
-  indent = { enabled = true },
+  image = {
+    enabled = true,
+    doc = {
+      enabled = false,
+    },
+  },
+  indent = {
+    enabled = true,
+    scope = {
+      treesitter = { enabled = false },
+    },
+  },
   input = { enabled = true },
   notifier = { enabled = true, timeout = 3000 },
   picker = {
     enabled = true,
   },
   quickfile = { enabled = true },
-  scope = { enabled = true },
+  scope = {
+    enabled = true,
+    treesitter = { enabled = false },
+  },
   scratch = { enabled = true },
   scroll = { enabled = true },
   statuscolumn = { enabled = false },
   words = { enabled = true },
   styles = {
+    dashboard = {
+      wo = {
+        statusline = nil,
+      },
+    },
     notification = { wo = { winblend = 0, winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder" } },
     input = { wo = { winblend = 0, winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder" } },
     picker = { backdrop = false, wo = { winblend = 0, winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder" } },
@@ -53,4 +71,3 @@ snacks.setup {
     lazygit = { backdrop = false, wo = { winblend = 0, winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder" } },
   },
 }
-
