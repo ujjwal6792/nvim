@@ -1,196 +1,203 @@
 local M = {}
 
-local pack_path = vim.fn.stdpath("data") .. "/site/pack/core/opt"
+local function plugin_name(spec)
+  return spec.name or vim.fs.basename(spec.src):gsub("%.git$", "")
+end
 
-local function get_plugin_dir_name(src)
-  local parts = {}
-  for part in string.gmatch(src, "[^/]+") do
-    table.insert(parts, part)
+local function declared_plugins()
+  local declared = {}
+  for _, spec in ipairs(require("configs.pack").specs) do
+    declared[plugin_name(spec)] = true
   end
-  if #parts > 0 then
-    local name = parts[#parts]
-    if name:sub(-4) == ".git" then
-      name = name:sub(1, -5)
+  return declared
+end
+
+local function plugins()
+  local declared = declared_plugins()
+  local items = {}
+  local ok, managed = pcall(vim.pack.get, nil, { offline = false })
+  if not ok then
+    vim.notify("Could not read vim.pack state: " .. managed, vim.log.levels.ERROR)
+    return items
+  end
+
+  for _, plugin in ipairs(managed) do
+    local name = plugin.spec.name
+    items[#items + 1] = {
+      name = name,
+      src = plugin.spec.src,
+      text = name .. " " .. plugin.spec.src,
+      rev = plugin.rev,
+      rev_to = plugin.rev_to,
+      active = plugin.active,
+      orphaned = not declared[name],
+      pending = plugin.rev_to and plugin.rev_to ~= plugin.rev,
+    }
+  end
+
+  table.sort(items, function(a, b)
+    local function rank(plugin)
+      if plugin.pending then return 1 end
+      if plugin.orphaned then return 2 end
+      return 3
     end
-    return name
-  end
-  return ""
+    local a_rank, b_rank = rank(a), rank(b)
+    return a_rank == b_rank and a.name < b.name or a_rank < b_rank
+  end)
+  return items
 end
 
-local function is_installed(name)
-  local path = pack_path .. "/" .. name
-  return vim.uv.fs_stat(path) ~= nil
+local function status(plugin)
+  if plugin.orphaned then
+    return "stale lockfile entry", "DiagnosticWarn", "!"
+  end
+  if plugin.pending then
+    return "update available", "DiagnosticInfo", "^"
+  end
+  if not plugin.active then
+    return "installed", "Comment", "o"
+  end
+  return "ready to review", "Comment", "?"
 end
 
-local function get_plugins()
-  local pack = require "configs.pack"
-  local plugins = {}
-  for _, spec in ipairs(pack.specs) do
-    local dir_name = spec.name or get_plugin_dir_name(spec.src)
-    table.insert(plugins, {
-      src = spec.src,
-      name = dir_name,
-      installed = is_installed(dir_name),
-      spec = spec
-    })
-  end
-  return plugins
-end
-
-local function execute_command(cmd, cwd)
-  local result = vim.system(cmd, { cwd = cwd, text = true }):wait()
-  if result.code ~= 0 then
-    vim.notify("Command failed: " .. table.concat(cmd, " ") .. "\n" .. (result.stderr or ""), vim.log.levels.ERROR)
-    return false
-  end
-  return true
+local function revision(rev)
+  return rev and rev:sub(1, 8) or "unknown"
 end
 
 function M.open()
-  if not pcall(require, "snacks") then
+  local ok, Snacks = pcall(require, "snacks")
+  if not ok then
     vim.notify("Snacks.nvim is required for PackManager", vim.log.levels.ERROR)
     return
   end
 
-  local plugins = get_plugins()
-  local items = {}
-  for _, plugin in ipairs(plugins) do
-    local icon = plugin.installed and "●" or "◌"
-    local status = plugin.installed and "[installed]" or "[missing]"
-    table.insert(items, {
-      text = plugin.src .. " " .. plugin.name,
-      plugin = plugin,
-      _icon = icon,
-      _status = status,
-    })
-  end
-
   Snacks.picker.pick({
-    title = "󰏖 Pack Manager (Press ? for actions)",
-    items = items,
-    format = function(item, picker)
-      local plugin = item.plugin
+    title = "Packages (? for actions; <C-u> review, <M-u> update now)",
+    items = plugins(),
+    format = function(plugin)
+      local label, highlight, icon = status(plugin)
+      local target = plugin.rev_to and { " -> " .. revision(plugin.rev_to), "DiagnosticInfo" } or {}
       return {
-        { item._icon, plugin.installed and "DiagnosticOk" or "DiagnosticWarn" },
+        { icon, highlight },
         { " " },
-        { plugin.src:gsub("https://github.com/", ""), "String" },
+        { plugin.name, "String" },
         { " " },
-        { item._status, "Comment" },
+        { label, highlight },
+        { " " },
+        { revision(plugin.rev), "Comment" },
+        target,
       }
     end,
     preview = function(ctx)
-      local plugin = ctx.item.plugin
-      if plugin.installed then
-        local path = pack_path .. "/" .. plugin.name
-        local readme = (
-            vim.uv.fs_stat(path .. "/README.md") and (path .. "/README.md") or
-            vim.uv.fs_stat(path .. "/README.mdx") and (path .. "/README.mdx") or
-            vim.uv.fs_stat(path .. "/readme.md") and (path .. "/readme.md") or
-            vim.uv.fs_stat(path .. "/README.MD") and (path .. "/README.MD")
-        )
-        if readme then
-          local lines = vim.fn.readfile(readme)
-          vim.bo[ctx.buf].modifiable = true
-          vim.api.nvim_buf_set_lines(ctx.buf, 0, -1, false, lines)
-          vim.bo[ctx.buf].modifiable = false
-          vim.schedule(function()
-            if vim.api.nvim_buf_is_valid(ctx.buf) then
-              local ext = readme:match("^.+(%..+)$")
-              if ext == ".mdx" then
-                vim.bo[ctx.buf].filetype = "markdown.mdx"
-              else
-                vim.bo[ctx.buf].filetype = "markdown"
-              end
-            end
-          end)
-          return
-        end
-      end
-      local lines = { "No README available (or plugin not installed)." }
+      local plugin = ctx.item
+      local label = status(plugin)
+      local lines = {
+        plugin.src,
+        "",
+        "Status: " .. label,
+        "Current revision: " .. revision(plugin.rev),
+        "Target revision: " .. revision(plugin.rev_to),
+        "",
+        plugin.orphaned
+            and "This package is only in nvim-pack-lock.json. Remove it if it is no longer intentional."
+          or "Press <C-u> to open vim.pack's native review buffer with commit details.",
+      }
       vim.bo[ctx.buf].modifiable = true
       vim.api.nvim_buf_set_lines(ctx.buf, 0, -1, false, lines)
       vim.bo[ctx.buf].modifiable = false
     end,
-    confirm = function(picker, item)
-      local plugin = item.plugin
-      if plugin.installed then
-        vim.notify("Plugin " .. plugin.name .. " is already installed.", vim.log.levels.INFO)
+    confirm = function(picker, plugin)
+      if plugin.orphaned then
+        vim.notify("This is a stale lockfile entry. Use <C-r> to remove it.", vim.log.levels.WARN)
         return
       end
       picker:close()
-      vim.notify("Installing " .. plugin.name .. "...", vim.log.levels.INFO)
-      
-      local ok, err = pcall(vim.pack.add, { plugin.spec }, { load = false, confirm = false })
-      if not ok then
-         vim.notify("Install failed: " .. err, vim.log.levels.ERROR)
+      local spec = vim.iter(require("configs.pack").specs):find(function(candidate)
+        return plugin_name(candidate) == plugin.name
+      end)
+      local add_ok, err = pcall(vim.pack.add, { spec }, { load = false, confirm = false })
+      if not add_ok then
+        vim.notify("Install failed: " .. err, vim.log.levels.ERROR)
       else
-         vim.notify("Installed " .. plugin.name, vim.log.levels.INFO)
+        vim.notify("Installed " .. plugin.name, vim.log.levels.INFO)
       end
     end,
     win = {
       input = {
         keys = {
           ["<c-r>"] = { "remove_plugin", mode = { "i", "n" }, desc = "Remove Plugin" },
-          ["<c-u>"] = { "update_plugin", mode = { "i", "n" }, desc = "Update Plugin" },
-          ["<c-o>"] = { "open_github", mode = { "i", "n" }, desc = "Open GitHub" },
-          ["<c-y>"] = { "copy_url", mode = { "i", "n" }, desc = "Copy URL" },
-        }
-      }
+          ["<c-u>"] = { "update_plugin", mode = { "i", "n" }, desc = "Review Plugin Update" },
+          ["<c-a>"] = { "update_all", mode = { "i", "n" }, desc = "Review All Updates" },
+          ["<m-u>"] = { "update_plugin_now", mode = { "i", "n" }, desc = "Update Plugin Now" },
+          ["<m-a>"] = { "update_all_now", mode = { "i", "n" }, desc = "Update All Now" },
+          ["<c-o>"] = { "open_github", mode = { "i", "n" }, desc = "Open Source" },
+          ["<c-y>"] = { "copy_url", mode = { "i", "n" }, desc = "Copy Source URL" },
+        },
+      },
     },
     actions = {
-      remove_plugin = function(picker, item)
-        if not item then return end
-        local plugin = item.plugin
-        if not plugin.installed then
-          vim.notify("Plugin " .. plugin.name .. " is not installed.", vim.log.levels.WARN)
+      remove_plugin = function(picker, plugin)
+        if not plugin then return end
+        vim.ui.select({ "Yes", "No" }, { prompt = "Remove " .. plugin.name .. " with vim.pack?" }, function(choice)
+          if choice ~= "Yes" then return end
+          local del_ok, err = pcall(vim.pack.del, { plugin.name }, { force = true })
+          if not del_ok then
+            vim.notify("Removal failed: " .. err, vim.log.levels.ERROR)
+            return
+          end
+          vim.notify("Removed " .. plugin.name, vim.log.levels.INFO)
+          picker:close()
+          M.open()
+        end)
+      end,
+      update_plugin = function(picker, plugin)
+        if not plugin then return end
+        if plugin.orphaned then
+          vim.notify("Stale lockfile entries cannot be updated.", vim.log.levels.WARN)
           return
         end
-        local path = pack_path .. "/" .. plugin.name
-        vim.ui.select({ "Yes", "No" }, {
-          prompt = "Delete plugin " .. plugin.name .. "?",
-          format_item = function(item) return item end,
-        }, function(choice)
-          if choice == "Yes" then
-            if execute_command({ "rm", "-rf", path }) then
-              vim.notify("Removed " .. plugin.name, vim.log.levels.INFO)
-              picker:close()
-              M.open()
-            end
-          end
-        end)
-      end,
-      update_plugin = function(picker, item)
-        if not item then return end
-        local plugin = item.plugin
-        if not plugin.installed then return end
         picker:close()
-        vim.notify("Updating " .. plugin.name .. "...", vim.log.levels.INFO)
-        local path = pack_path .. "/" .. plugin.name
-        vim.system({ "git", "pull" }, { cwd = path, text = true }, function(result)
-          vim.schedule(function()
-            if result.code == 0 then
-              vim.notify("Updated " .. plugin.name .. "\n" .. result.stdout, vim.log.levels.INFO)
-            else
-               vim.notify("Failed to update " .. plugin.name .. "\n" .. result.stderr, vim.log.levels.ERROR)
-            end
-          end)
-        end)
+        vim.pack.update({ plugin.name })
       end,
-      open_github = function(picker, item)
-        if not item then return end
-        execute_command({ "open", item.plugin.src })
+      update_all = function(picker)
+        picker:close()
+        vim.pack.update()
       end,
-      copy_url = function(picker, item)
-        if not item then return end
-        vim.fn.setreg("+", item.plugin.src)
-        vim.notify("Copied " .. item.plugin.src .. " to clipboard", vim.log.levels.INFO)
+      update_plugin_now = function(picker, plugin)
+        if not plugin then return end
+        if plugin.orphaned then
+          vim.notify("Stale lockfile entries cannot be updated.", vim.log.levels.WARN)
+          return
+        end
+        picker:close()
+        local ok, err = pcall(vim.pack.update, { plugin.name }, { force = true })
+        if not ok then
+          vim.notify("Update failed: " .. err, vim.log.levels.ERROR)
+          return
+        end
+        vim.notify("Updated " .. plugin.name .. "; restart Neovim to load the new revision.", vim.log.levels.INFO)
+      end,
+      update_all_now = function(picker)
+        picker:close()
+        local ok, err = pcall(vim.pack.update, nil, { force = true })
+        if not ok then
+          vim.notify("Update failed: " .. err, vim.log.levels.ERROR)
+          return
+        end
+        vim.notify("Updated packages; restart Neovim to load new revisions.", vim.log.levels.INFO)
+      end,
+      open_github = function(_, plugin)
+        if plugin then vim.ui.open(plugin.src) end
+      end,
+      copy_url = function(_, plugin)
+        if not plugin then return end
+        vim.fn.setreg("+", plugin.src)
+        vim.notify("Copied " .. plugin.src .. " to clipboard", vim.log.levels.INFO)
       end,
     },
   })
 end
 
-vim.api.nvim_create_user_command("PackManager", function()
-  M.open()
-end, { desc = "Open Snacks pack manager" })
+vim.api.nvim_create_user_command("PackManager", M.open, { desc = "Open package manager" })
 
 return M

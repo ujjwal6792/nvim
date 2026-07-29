@@ -10,6 +10,7 @@ if ok_ui and ui.enable then
 end
 require "options"
 require "autocwd"
+require "configs.autoread"
 require "configs.pack"
 require "plugins._loader"
 require("configs.highlights").setup()

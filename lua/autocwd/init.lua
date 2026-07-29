@@ -1,4 +1,5 @@
 local project_markers = {
+  ".git",
   "package.json",
   "Cargo.toml",
   "go.mod",
@@ -10,14 +11,6 @@ local project_markers = {
   "composer.json",
   "mix.exs",
 }
-
-local function get_git_root(dir)
-  local obj = vim.system({ "git", "rev-parse", "--show-toplevel" }, { text = true, cwd = dir }):wait()
-  if obj.code == 0 then
-    return vim.trim(obj.stdout)
-  end
-  return nil
-end
 
 local function find_project_root(dir)
   local normalized = vim.fs.normalize(dir)
@@ -36,11 +29,6 @@ local function resolve_cwd(bufname)
   local dir = vim.fn.fnamemodify(bufname, ":h")
   if dir == "" then
     return nil
-  end
-
-  local git_root = get_git_root(dir)
-  if git_root then
-    return git_root
   end
 
   local project_root = find_project_root(dir)

@@ -22,6 +22,16 @@ formatting, Blink completion, and a small set of local UI/window helpers.
 
 Plugin revisions are tracked in `nvim-pack-lock.json`.
 
+## Package Updates
+
+Run `:PackManager` to view managed packages and stale lockfile entries. The
+picker shows installed revisions and available targets when Neovim provides
+them. Use `<C-u>` for the selected package or `<C-a>` for all packages; both
+open Neovim's native `vim.pack` review buffer, where `:write` applies the
+reviewed changes and `:quit` discards them. Use `<M-u>` to update the selected
+package immediately or `<M-a>` to update all packages immediately. Use `<C-r>`
+to remove a package through `vim.pack`.
+
 ## Markdown & MDX Enhancements
 
 Buffer-local mappings for `.md`, `.mdx`, `.qmd` (Quarto), and `.rmd` (R

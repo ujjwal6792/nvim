@@ -2,12 +2,7 @@ local M = {}
 
 local Path = require "plenary.path"
 local scan = require "plenary.scandir"
-local pickers = require "telescope.pickers"
-local finders = require "telescope.finders"
-local conf = require("telescope.config").values
-local actions = require "telescope.actions"
-local action_state = require "telescope.actions.state"
-local previewers = require "telescope.previewers"
+local Snacks = require "snacks"
 
 local notes_dir = vim.fn.expand "~/notes"
 local created_notes = {}
@@ -180,7 +175,7 @@ local function note_path(cwd, name)
   return Path:new(cwd .. "/" .. name)
 end
 
-local function create_note(cwd, prompt_bufnr)
+local function create_note(cwd)
   cleanup_empty_created_notes()
 
   local input = vim.fn.input "Note path (blank = date): "
@@ -194,9 +189,6 @@ local function create_note(cwd, prompt_bufnr)
     track_note(path:absolute())
   end
 
-  if prompt_bufnr then
-    actions.close(prompt_bufnr)
-  end
   vim.cmd("edit " .. vim.fn.fnameescape(path:absolute()))
 end
 
@@ -273,8 +265,163 @@ local function archive_note(file, display, refresh_cb)
 end
 
 --------------------------------------------------
--- Telescope picker: Notes browser
+-- Snacks selectors: notes, tags, tasks, and backlinks
 --------------------------------------------------
+local function markdown_files()
+  return vim.fs.find(function(name)
+    return name:match "%.md$" ~= nil
+  end, { path = notes_dir, type = "file", limit = math.huge })
+end
+
+local function pick_notes(title, items, confirm, actions, keys)
+  Snacks.picker.pick {
+    title = title,
+    items = items,
+    format = "text",
+    preview = "file",
+    confirm = confirm,
+    actions = actions,
+    win = { input = { keys = keys or {} } },
+  }
+end
+
+function M.open_notes(cwd)
+  ensure_notes_dir()
+  cwd = cwd or notes_dir
+  local breadcrumb = Path:new(cwd):make_relative(notes_dir)
+  breadcrumb = breadcrumb == "" and "notes" or "notes/" .. breadcrumb
+  local items = vim.tbl_map(function(entry)
+    return { text = string.format("%s  [%s]", entry.display, entry.created), file = entry.is_dir and nil or entry.file, entry = entry }
+  end, list_notes(cwd))
+
+  pick_notes(breadcrumb, items, function(picker, item)
+    if not item then return end
+    picker:close()
+    if item.entry.is_dir then M.open_notes(item.entry.file) else edit_note(item.entry.file) end
+  end, {
+    create_note = function(picker) picker:close(); create_note(cwd) end,
+    create_folder = function(picker)
+      picker:close()
+      local name = vim.fn.input "Folder name: "
+      if name ~= "" then vim.fn.mkdir(cwd .. "/" .. name, "p") end
+      M.open_notes(cwd)
+    end,
+    go_up = function(picker)
+      if cwd == notes_dir then picker:close() else picker:close(); M.open_notes(Path:new(cwd):parent():absolute()) end
+    end,
+    rename = function(picker, item)
+      if item then rename_entry(item.entry.file, item.entry.is_dir, function() picker:close(); M.open_notes(cwd) end) end
+    end,
+    trash = function(picker, item)
+      if item then trash_entry(item.entry.file, item.entry.is_dir, function() picker:close(); M.open_notes(cwd) end) end
+    end,
+    archive = function(picker, item)
+      if item then archive_entry(item.entry.file, function() picker:close(); M.open_notes(cwd) end) end
+    end,
+  }, {
+    ["<c-n>"] = { "create_note", mode = { "n", "i" } },
+    ["<c-a>"] = { "create_note", mode = { "n", "i" } },
+    ["<c-f>"] = { "create_folder", mode = { "n", "i" } },
+    ["<c-r>"] = { "rename", mode = { "n", "i" } },
+    ["<c-d>"] = { "trash", mode = { "n", "i" } },
+    ["<c-x>"] = { "archive", mode = { "n", "i" } },
+    ["<esc>"] = { "go_up", mode = { "n", "i" } },
+  })
+end
+
+function M.find_by_tag(tag)
+  local items = {}
+  if config.zen_tags and zen_available() then
+    for _, note in ipairs(zen_json { "tag", "find", tag } or {}) do
+      items[#items + 1] = { text = note.path or "", file = notes_dir .. "/" .. (note.path or "") }
+    end
+  else
+    local pattern = "#" .. vim.pesc(tag) .. "%f[^%w_-]"
+    for _, file in ipairs(markdown_files()) do
+      local ok, lines = pcall(vim.fn.readfile, file)
+      if ok and table.concat(lines, "\n"):find(pattern) then items[#items + 1] = { text = zen_rel(file), file = file } end
+    end
+  end
+  if #items == 0 then vim.notify("No notes found for #" .. tag, vim.log.levels.INFO); return end
+  pick_notes("Notes › #" .. tag, items, function(picker, item)
+    if item then picker:close(); edit_note(item.file) end
+  end)
+end
+
+function M.open_tags()
+  local counts = {}
+  if config.zen_tags and zen_available() then
+    for _, tag in ipairs(zen_json { "tag", "list" } or {}) do counts[tag.tag] = tag.count or 0 end
+  else
+    for _, file in ipairs(markdown_files()) do
+      local ok, lines = pcall(vim.fn.readfile, file)
+      if ok then
+        local seen = {}
+        for tag in table.concat(lines, "\n"):gmatch "#([%w_/-]+)" do seen[tag] = true end
+        for tag in pairs(seen) do counts[tag] = (counts[tag] or 0) + 1 end
+      end
+    end
+  end
+  local items = {}
+  for tag, count in pairs(counts) do items[#items + 1] = { text = string.format("#%-30s  %d notes", tag, count), tag = tag } end
+  if #items == 0 then vim.notify("No tags found in vault", vim.log.levels.INFO); return end
+  pick_notes("Notes › Tags", items, function(picker, item)
+    if item then picker:close(); M.find_by_tag(item.tag) end
+  end)
+end
+
+function M.open_tasks()
+  local items = {}
+  if config.zen_tasks and zen_available() then
+    for _, task in ipairs(zen_json { "task", "list", "--unchecked" } or {}) do
+      items[#items + 1] = { text = string.format("%s  %s", task.text or "", task.path or ""), file = notes_dir .. "/" .. (task.path or ""), task = task }
+    end
+  else
+    for _, file in ipairs(markdown_files()) do
+      local ok, lines = pcall(vim.fn.readfile, file)
+      if ok then for lnum, line in ipairs(lines) do
+        if line:find "%- %[%s%]" then items[#items + 1] = { text = line .. "  " .. zen_rel(file), file = file, lnum = lnum } end
+      end end
+    end
+  end
+  if #items == 0 then vim.notify("No open tasks found", vim.log.levels.INFO); return end
+  pick_notes("Notes › Open Tasks", items, function(picker, item)
+    if item then picker:close(); edit_note(item.file); if item.lnum then vim.api.nvim_win_set_cursor(0, { item.lnum, 0 }) end end
+  end, {
+    toggle_task = function(picker, item)
+      if not item or not item.task or not item.task.id then
+        vim.notify("Task has no ID - cannot toggle", vim.log.levels.WARN)
+      elseif zen_run { "task", "toggle", tostring(item.task.id) } then
+        picker:close(); M.open_tasks()
+      else
+        vim.notify("zen task toggle failed", vim.log.levels.WARN)
+      end
+    end,
+  }, { ["<c-t>"] = { "toggle_task", mode = { "n", "i" } } })
+end
+
+function M.open_backlinks()
+  local fname = vim.api.nvim_buf_get_name(0)
+  if not fname:match(notes_dir) or not fname:match "%.md$" then vim.notify("Not in a notes buffer", vim.log.levels.WARN); return end
+  local rel, items = zen_rel(fname), {}
+  if config.zen_backlinks and zen_available() then
+    for _, note in ipairs(zen_json { "backlinks", rel } or {}) do
+      items[#items + 1] = { text = note.path or "", file = notes_dir .. "/" .. (note.path or "") }
+    end
+  else
+    local pattern = "%[%[" .. vim.pesc(vim.fn.fnamemodify(fname, ":t:r")) .. "%]%]"
+    for _, file in ipairs(markdown_files()) do
+      local ok, lines = pcall(vim.fn.readfile, file)
+      if ok and table.concat(lines, "\n"):find(pattern) then items[#items + 1] = { text = zen_rel(file), file = file } end
+    end
+  end
+  if #items == 0 then vim.notify("No backlinks found for " .. rel, vim.log.levels.INFO); return end
+  pick_notes("Notes › Backlinks <- " .. vim.fn.fnamemodify(rel, ":t:r"), items, function(picker, item)
+    if item then picker:close(); edit_note(item.file) end
+  end)
+end
+
+if 0 == 1 then
 function M.open_notes(cwd)
   ensure_notes_dir()
   cwd = cwd or notes_dir
@@ -288,10 +435,10 @@ function M.open_notes(cwd)
     breadcrumb = "notes/" .. breadcrumb
   end
 
-  pickers
+  disabled_selectors
     .new({}, {
       prompt_title = breadcrumb,
-      finder = finders.new_table {
+      finder = disabled_sources.new_table {
         results = entries,
         entry_maker = function(e)
           return {
@@ -302,7 +449,7 @@ function M.open_notes(cwd)
         end,
       },
       sorter = conf.generic_sorter {},
-      previewer = previewers.new_buffer_previewer {
+      previewer = disabled_previews.new_buffer_previewer {
         define_preview = function(self, entry)
           local buf = self.state.bufnr
           if entry.value.is_dir then
@@ -330,7 +477,7 @@ function M.open_notes(cwd)
       },
       attach_mappings = function(prompt_bufnr, map)
         local function open_file()
-          local selection = action_state.get_selected_entry().value
+          local selection = disabled_state.get_selected_entry().value
           actions.close(prompt_bufnr)
           if selection.is_dir then
             M.open_notes(selection.file)
@@ -376,7 +523,7 @@ function M.open_notes(cwd)
 
         -- <C-r>: rename file/folder
         map("i", "<C-r>", function()
-          local selection = action_state.get_selected_entry().value
+          local selection = disabled_state.get_selected_entry().value
           local new_name = vim.fn.input("New name: ", vim.fn.fnamemodify(selection.file, ":t"))
           if new_name ~= "" then
             os.rename(selection.file, Path:new(cwd .. "/" .. new_name):absolute())
@@ -386,7 +533,7 @@ function M.open_notes(cwd)
 
         -- <C-d>: trash (zen) or hard delete (fallback)
         map("i", "<C-d>", function()
-          local selection = action_state.get_selected_entry().value
+          local selection = disabled_state.get_selected_entry().value
           actions.close(prompt_bufnr)
           delete_or_trash(selection.file, selection.display, function()
             M.open_notes(cwd)
@@ -395,7 +542,7 @@ function M.open_notes(cwd)
 
         -- <C-x>: archive via zen (no fallback)
         map("i", "<C-x>", function()
-          local selection = action_state.get_selected_entry().value
+          local selection = disabled_state.get_selected_entry().value
           actions.close(prompt_bufnr)
           archive_note(selection.file, selection.display, function()
             M.open_notes(cwd)
@@ -412,7 +559,7 @@ function M.open_notes(cwd)
 end
 
 --------------------------------------------------
--- Telescope picker: Tag browser (zen or fallback)
+-- Legacy tag picker (zen or fallback)
 --------------------------------------------------
 function M.open_tags()
   if config.zen_tags and zen_available() then
@@ -423,10 +570,10 @@ function M.open_tags()
       return
     end
 
-    pickers
+    disabled_selectors
       .new({}, {
         prompt_title = "Notes › Tags",
-        finder = finders.new_table {
+        finder = disabled_sources.new_table {
           results = tags,
           entry_maker = function(t)
             return {
@@ -439,7 +586,7 @@ function M.open_tags()
         sorter = conf.generic_sorter {},
         attach_mappings = function(_, map)
           map("i", "<CR>", function(pb)
-            local tag = action_state.get_selected_entry().value
+            local tag = disabled_state.get_selected_entry().value
             actions.close(pb)
             M.find_by_tag(tag)
           end)
@@ -448,8 +595,8 @@ function M.open_tags()
       })
       :find()
   else
-    -- Fallback: grep for #tag patterns using Telescope
-    require("telescope.builtin").live_grep {
+    -- Legacy fallback implementation
+    disabled_picker.live_grep {
       search_dirs = { notes_dir },
       prompt_title = "Notes › Search Tags (fallback)",
       default_text = "#",
@@ -457,7 +604,7 @@ function M.open_tags()
   end
 end
 
---- Open a Telescope picker of notes carrying the given tag.
+--- Open a legacy picker of notes carrying the given tag.
 function M.find_by_tag(tag)
   if config.zen_tags and zen_available() then
     local notes = zen_json { "tag", "find", tag }
@@ -466,10 +613,10 @@ function M.find_by_tag(tag)
       return
     end
 
-    pickers
+    disabled_selectors
       .new({}, {
         prompt_title = "Notes › #" .. tag,
-        finder = finders.new_table {
+        finder = disabled_sources.new_table {
           results = notes,
           entry_maker = function(n)
             local rel = zen_rel(notes_dir .. "/" .. (n.path or ""))
@@ -484,7 +631,7 @@ function M.find_by_tag(tag)
         previewer = conf.file_previewer {},
         attach_mappings = function(_, map)
           map("i", "<CR>", function(pb)
-            local file = action_state.get_selected_entry().value
+            local file = disabled_state.get_selected_entry().value
             actions.close(pb)
             edit_note(file)
           end)
@@ -493,7 +640,7 @@ function M.find_by_tag(tag)
       })
       :find()
   else
-    require("telescope.builtin").live_grep {
+    disabled_picker.live_grep {
       search_dirs = { notes_dir },
       prompt_title = "Notes › #" .. tag .. " (fallback)",
       default_text = "#" .. tag,
@@ -502,7 +649,7 @@ function M.find_by_tag(tag)
 end
 
 --------------------------------------------------
--- Telescope picker: Global task list (zen or fallback grep)
+-- Legacy global task picker (zen or fallback grep)
 --------------------------------------------------
 function M.open_tasks()
   if config.zen_tasks and zen_available() then
@@ -512,10 +659,10 @@ function M.open_tasks()
       return
     end
 
-    pickers
+    disabled_selectors
       .new({}, {
         prompt_title = "Notes › Open Tasks",
-        finder = finders.new_table {
+        finder = disabled_sources.new_table {
           results = tasks,
           entry_maker = function(t)
             local note_rel = t.path or ""
@@ -531,13 +678,13 @@ function M.open_tasks()
         attach_mappings = function(_, map)
           -- <CR>: open the containing note
           map("i", "<CR>", function(pb)
-            local t = action_state.get_selected_entry().value
+            local t = disabled_state.get_selected_entry().value
             actions.close(pb)
             edit_note(notes_dir .. "/" .. (t.path or ""))
           end)
           -- <C-t>: toggle task (zen task toggle <id>)
           map("i", "<C-t>", function(pb)
-            local t = action_state.get_selected_entry().value
+            local t = disabled_state.get_selected_entry().value
             actions.close(pb)
             if t.id then
               local ok = zen_run { "task", "toggle", tostring(t.id) }
@@ -556,7 +703,7 @@ function M.open_tasks()
       :find()
   else
     -- Fallback: grep for unchecked checkboxes
-    require("telescope.builtin").live_grep {
+    disabled_picker.live_grep {
       search_dirs = { notes_dir },
       prompt_title = "Notes › Tasks (fallback grep)",
       default_text = "- [ ]",
@@ -565,7 +712,7 @@ function M.open_tasks()
 end
 
 --------------------------------------------------
--- Telescope picker: Backlinks (zen or fallback grep)
+-- Legacy backlinks picker (zen or fallback grep)
 --------------------------------------------------
 function M.open_backlinks()
   local buf = vim.api.nvim_get_current_buf()
@@ -584,10 +731,10 @@ function M.open_backlinks()
       return
     end
 
-    pickers
+    disabled_selectors
       .new({}, {
         prompt_title = "Notes › Backlinks ← " .. vim.fn.fnamemodify(rel, ":t:r"),
-        finder = finders.new_table {
+        finder = disabled_sources.new_table {
           results = links,
           entry_maker = function(n)
             local note_rel = n.path or ""
@@ -602,7 +749,7 @@ function M.open_backlinks()
         previewer = conf.file_previewer {},
         attach_mappings = function(_, map)
           map("i", "<CR>", function(pb)
-            local file = action_state.get_selected_entry().value
+            local file = disabled_state.get_selected_entry().value
             actions.close(pb)
             edit_note(file)
           end)
@@ -613,12 +760,13 @@ function M.open_backlinks()
   else
     -- Fallback: grep for [[filename-stem]] across notes
     local stem = vim.fn.fnamemodify(fname, ":t:r")
-    require("telescope.builtin").live_grep {
+    disabled_picker.live_grep {
       search_dirs = { notes_dir },
       prompt_title = "Notes › Backlinks (fallback grep)",
       default_text = "[[" .. stem,
     }
   end
+end
 end
 
 --------------------------------------------------

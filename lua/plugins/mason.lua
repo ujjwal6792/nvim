@@ -18,7 +18,6 @@ local packages = {
   "tailwindcss-language-server",
   "cssmodules-language-server",
   "eslint-lsp",
-  "eslint_d",
   "prismals",
   "svelte-language-server",
   "astro-language-server",

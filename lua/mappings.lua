@@ -116,7 +116,7 @@ map("n", "<leader>fa", function() Snacks.picker.files({ hidden = true, ignored =
 
 -- Snacks Quick Mappings
 map("n", "<leader>.", function() Snacks.scratch() end, { desc = "Toggle Scratch Buffer" })
-map("n", "<leader>rn", function() Snacks.rename.rename_file() end, { desc = "Rename File" })
+map("n", "<leader>rN", function() Snacks.rename.rename_file() end, { desc = "Rename File" })
 
 -- Project Manager / tasks.jsonl Plugin Keymaps
 map("n", "<leader>ta", function() require("tasks-nvim").open({ group_by = "status" }) end, { desc = "Tasks: all grouped by status" })
