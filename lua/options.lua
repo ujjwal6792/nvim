@@ -101,3 +101,10 @@ vim.filetype.add({
   },
 })
 
+-- Goal task records are intentionally long JSONL lines. This rule must outrank
+-- Snacks' bigfile detector so the JSON parser and planning highlights attach.
+vim.filetype.add({
+  pattern = {
+    [".*%.jsonl"] = { "jsonl", { priority = math.huge } },
+  },
+})

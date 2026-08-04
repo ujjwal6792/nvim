@@ -13,6 +13,8 @@ formatting, Blink completion, and a small set of local UI/window helpers.
 - `lua/configs/buffers.lua`, `tabline.lua`, `term.lua`, and `highlights.lua`
   hold local window, tabline, terminal, and theme behavior.
 - `lua/notes/init.lua` is the local notes helper.
+- `lua/goals-nvim/` is a read-only explorer for the repository-local planning
+  workflow.
 
 ## Requirements
 
@@ -21,6 +23,27 @@ formatting, Blink completion, and a small set of local UI/window helpers.
 - ImageMagick for image rendering
 
 Plugin revisions are tracked in `nvim-pack-lock.json`.
+
+## Goals Explorer
+
+Use `<leader>tt` or `:Goals` from any buffer under a project containing
+`resources/planning/GOALS.md`. The explorer locates the nearest project,
+launches a Ratatui terminal dashboard through Snacks. It includes Goals and
+Wayfinding tabs, goal tasks, lifecycle artifacts, categorized assets/resources,
+and evidence-labeled Wayfinder relationships.
+
+`1`/`2` or `Tab` switch tabs, `j`/`k` navigate, `Enter`/`Space` collapse nodes,
+`r` refreshes, and `q` closes. Click list rows to select them. Press `Enter`
+twice on a file or ticket to edit its source in Neovim; closing that buffer
+returns to the still-running TUI. Press `m` on a Markdown source to view it in
+`mdt`; quitting `mdt` returns to the dashboard.
+
+Expand a goal, then **Assets & Resources**, to browse every goal-local Markdown
+file and `tasks.jsonl`, along with readable task references and file targets.
+Completed goals are ordered by their most recently modified completion artifact.
+The terminal layout adapts as Neovim changes shape. The explorer never changes
+task, goal, or Wayfinder state; it is a projection of the canonical planning
+files. The first launch compiles the local `tools/goals-tui` Cargo crate.
 
 ## Package Updates
 

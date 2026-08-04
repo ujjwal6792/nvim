@@ -1,0 +1,12 @@
+[package]
+name = "goals-tui"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+ansi-to-tui = "8.0.1"
+crossterm = "0.29.0"
+ratatui = "0.30.0"
+regex = "1.13.1"
+serde_json = "1.0.149"

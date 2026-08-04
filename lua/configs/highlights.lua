@@ -193,6 +193,15 @@ function M.apply()
 
   -- completed_at VALUE (Priority 15 - always teal when present)
   vim.api.nvim_set_hl(0, "JsonlCompletedAt", { fg = c.teal, bold = true })
+  vim.api.nvim_set_hl(0, "JsonlPriority1", { fg = c.red, bold = true })
+  vim.api.nvim_set_hl(0, "JsonlPriority2", { fg = c.peach, bold = true })
+  vim.api.nvim_set_hl(0, "JsonlPriority3", { fg = c.yellow })
+  vim.api.nvim_set_hl(0, "JsonlPriority4", { fg = c.sky })
+  vim.api.nvim_set_hl(0, "JsonlPriority5", { fg = c.overlay1 })
+  vim.api.nvim_set_hl(0, "JsonlSentinel", { fg = c.mauve, bold = true })
+  vim.api.nvim_set_hl(0, "JsonlPointer", { fg = c.lavender, bold = true })
+  vim.api.nvim_set_hl(0, "JsonlInvalid", { fg = c.red, undercurl = true })
+
 end
 
 function M.setup()

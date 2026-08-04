@@ -21,4 +21,4 @@ require "configs.lint"
 require "configs.dap"
 require "mappings"
 require("md-table-fmt").setup()
-require("tasks-nvim").setup()
+require("goals-nvim").setup()

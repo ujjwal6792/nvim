@@ -118,16 +118,6 @@ map("n", "<leader>fa", function() Snacks.picker.files({ hidden = true, ignored =
 map("n", "<leader>.", function() Snacks.scratch() end, { desc = "Toggle Scratch Buffer" })
 map("n", "<leader>rN", function() Snacks.rename.rename_file() end, { desc = "Rename File" })
 
--- Project Manager / tasks.jsonl Plugin Keymaps
-map("n", "<leader>ta", function() require("tasks-nvim").open({ group_by = "status" }) end, { desc = "Tasks: all grouped by status" })
-map("n", "<leader>ts", function() require("tasks-nvim").open({ filter = "current_sprint" }) end, { desc = "Tasks: current sprint" })
-map("n", "<leader>te", function() require("tasks-nvim").open({ group_by = "epic" }) end, { desc = "Tasks: group by epic" })
-map("n", "<leader>ti", function() require("tasks-nvim").open({ filter = "in_progress" }) end, { desc = "Tasks: in progress only" })
-map("n", "<leader>tb", function() require("tasks-nvim").open({ filter = "blocked" }) end, { desc = "Tasks: blocked only" })
-map("n", "<leader>tg", function() require("tasks-nvim").open({ group_by = "milestone" }) end, { desc = "Tasks: group by milestone" })
-map("n", "<leader>tn", function() require("tasks-nvim").new_task() end, { desc = "Tasks: create new task" })
-map("n", "<leader>td", function() require("tasks-nvim").open({ filter = "done" }) end, { desc = "Tasks: done only" })
-
 map("n", "ea", "$a", { desc = "move cursor to end and enter insert mode" })
 
 map("t", "<C-x>", "<C-\\><C-N>", { desc = "terminal escape terminal mode" })
