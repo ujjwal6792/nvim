@@ -22,13 +22,15 @@ use std::{
     env,
     error::Error,
     fs,
-    io::{self, stdout},
+    io::{self, Write, stdout},
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
     time::{Duration, Instant, UNIX_EPOCH},
 };
 
-const REPEAT_DELAY: Duration = Duration::from_millis(160);
+const PREVIEW_RENDER_DELAY: Duration = Duration::from_millis(800);
+const KEY_REPEAT_DELAY: Duration = Duration::from_millis(80);
+const WHEEL_DEDUP_DELAY: Duration = Duration::from_millis(35);
 
 #[derive(Clone)]
 struct Task {
@@ -102,6 +104,8 @@ struct App {
     preview_area: Rect,
     list_offset: usize,
     preview_offset: u16,
+    preview_cache: Option<(usize, u16, Text<'static>)>,
+    preview_render_after: Option<Instant>,
     last_key: Option<KeyCode>,
     last_key_at: Option<Instant>,
 }
@@ -169,6 +173,32 @@ fn preview_file(path: &Path, width: u16) -> Text<'static> {
             .into_text()
             .unwrap_or_else(|_| Text::from(read(path))),
         _ => Text::from(read(path)),
+    }
+}
+
+fn render_markdown(content: &str, width: u16) -> Text<'static> {
+    let mut child = match Command::new("glow")
+        .env("CLICOLOR_FORCE", "1")
+        .env("FORCE_COLOR", "1")
+        .arg("--width")
+        .arg(width.max(20).to_string())
+        .args(["--style", "dark"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+    {
+        Ok(child) => child,
+        Err(_) => return Text::from(content.to_string()),
+    };
+    if let Some(mut stdin) = child.stdin.take() {
+        let _ = stdin.write_all(content.as_bytes());
+    }
+    match child.wait_with_output() {
+        Ok(output) if output.status.success() => output
+            .stdout
+            .into_text()
+            .unwrap_or_else(|_| Text::from(content.to_string())),
+        _ => Text::from(content.to_string()),
     }
 }
 
@@ -456,6 +486,8 @@ impl App {
             preview_area: Rect::default(),
             list_offset: 0,
             preview_offset: 0,
+            preview_cache: None,
+            preview_render_after: None,
             last_key: None,
             last_key_at: None,
         };
@@ -513,7 +545,14 @@ impl App {
         self.entries.clear();
         self.list_offset = 0;
         self.preview_offset = 0;
+        self.preview_cache = None;
+        self.preview_render_after = None;
         if self.tab == 0 {
+            let goals_md = self.root.join("resources/planning/GOALS.md");
+            if exists(&goals_md) {
+                self.entries
+                    .push(Entry::File(goals_md, "  GOALS.md".to_string()));
+            }
             for (status, label) in [
                 ("wip", "IN PROGRESS"),
                 ("todo", "TO DO"),
@@ -647,6 +686,8 @@ impl App {
     fn select(&mut self, selected: usize) {
         self.selected = selected.min(self.entries.len().saturating_sub(1));
         self.preview_offset = 0;
+        self.preview_cache = None;
+        self.preview_render_after = Some(Instant::now() + PREVIEW_RENDER_DELAY);
         let visible = usize::from(self.list_area.height.saturating_sub(2)).max(1);
         if self.selected < self.list_offset {
             self.list_offset = self.selected;
@@ -664,17 +705,32 @@ impl App {
         self.select(next);
     }
 
-    fn repeat_throttle(&mut self, key: KeyCode) -> bool {
+    fn throttle(&mut self, key: KeyCode, delay: Duration) -> bool {
         let now = Instant::now();
         let throttled = self.last_key == Some(key)
             && self
                 .last_key_at
-                .is_some_and(|at| now.duration_since(at) < REPEAT_DELAY);
+                .is_some_and(|at| now.duration_since(at) < delay);
         if !throttled {
             self.last_key = Some(key);
             self.last_key_at = Some(now);
         }
         throttled
+    }
+
+    fn repeat_throttle(&mut self, key: KeyCode) -> bool {
+        self.throttle(key, KEY_REPEAT_DELAY)
+    }
+
+    fn wheel_throttle(&mut self, down: bool) -> bool {
+        self.throttle(
+            if down {
+                KeyCode::PageDown
+            } else {
+                KeyCode::PageUp
+            },
+            WHEEL_DEDUP_DELAY,
+        )
     }
 
     fn enter(
@@ -693,7 +749,7 @@ impl App {
             Some(Entry::Goal(index)) => {
                 let goal = &self.goals[*index];
                 format!(
-                    "GOAL {:02}: {}\n\nStatus: {}\nTasks: {}\nPath: {}\n\nWayfinding linked:\n{}\n\nWayfinding mentioned:\n{}",
+                    "## GOAL {:02}: {}\n\n**Status:** {}  \n**Tasks:** {}  \n**Path:** `{}`\n\n**Wayfinding linked:**\n{}\n\n**Wayfinding mentioned:**\n{}",
                     goal.id,
                     goal.slug,
                     goal.status,
@@ -707,7 +763,7 @@ impl App {
             Some(Entry::Task(goal_index, task_index)) => {
                 let task = &self.goals[*goal_index].tasks[*task_index];
                 format!(
-                    "TASK {}: {}\n\nStatus: {}    Priority: {}\nBlocked by: {}\n\nReferences:\n{}\n\nImplementation targets:\n{}\n\nRequired skills:\n{}\n\nVerification commands:\n{}",
+                    "## TASK {}: {}\n\n**Status:** {}    **Priority:** {}  \n**Blocked by:** {}  \n\n**References:**\n{}\n\n**Implementation targets:**\n{}\n\n**Required skills:**\n{}\n\n**Verification commands:**\n{}",
                     task.id,
                     task.title,
                     task.status,
@@ -722,7 +778,7 @@ impl App {
             Some(Entry::Map(index)) => {
                 let map = &self.maps[*index];
                 format!(
-                    "WAYFINDING: {}\n\nStatus: {}\nTickets: {}\n\nDirectly linked goals:\n{}\n\nMentioned goals:\n{}",
+                    "## WAYFINDING: {}\n\n**Status:** {}  \n**Tickets:** {}  \n\n**Directly linked goals:**\n{}\n\n**Mentioned goals:**\n{}",
                     map.name,
                     map.status,
                     map.tickets.len(),
@@ -733,7 +789,7 @@ impl App {
             Some(Entry::Relationship(index, evidence)) => {
                 let goal = &self.goals[*index];
                 format!(
-                    "{} relationship\n\nGOAL {:02}: {}\nStatus: {}\nTasks: {}\nPath: {}",
+                    "## {} relationship\n\n**GOAL {:02}:** {}\n**Status:** {}  \n**Tasks:** {}  \n**Path:** `{}`",
                     evidence,
                     goal.id,
                     goal.slug,
@@ -745,7 +801,7 @@ impl App {
             Some(Entry::Ticket(map_index, ticket_index)) => {
                 let ticket = &self.maps[*map_index].tickets[*ticket_index];
                 format!(
-                    "{}: {}\n\nStatus: {}\n\n{}",
+                    "## {}: {}\n\n**Status:** {}  \n\n{}",
                     ticket.id,
                     ticket.title,
                     ticket.status,
@@ -754,21 +810,40 @@ impl App {
             }
             Some(Entry::File(path, _)) => read(path).to_string(),
             Some(Entry::Section(title, _)) => format!(
-                "{}\n\nUse j/k or arrows to select an item.\nUse Tab or 1/2 to switch views.",
+                "## {}\n\nUse j/k or arrows to select an item.\nUse Tab or 1/2 to switch views.",
                 title
             ),
             None => "No planning records found.".to_string(),
         }
     }
 
-    fn detail_text(&self, width: u16) -> Text<'static> {
-        match self.selected_entry() {
+    fn detail_text(&mut self, width: u16) -> Text<'static> {
+        if let Some((selected, cached_width, text)) = &self.preview_cache {
+            if *selected == self.selected && *cached_width == width {
+                return text.clone();
+            }
+        }
+
+        let needs_external_preview = matches!(
+            self.selected_entry(),
+            Some(Entry::Ticket(_, _)) | Some(Entry::File(_, _))
+        );
+        if needs_external_preview
+            && self
+                .preview_render_after
+                .is_some_and(|after| Instant::now() < after)
+        {
+            return Text::from("Preview will render when navigation stops.");
+        }
+
+        let text = match self.selected_entry() {
             Some(Entry::Ticket(map_index, ticket_index)) => {
                 let ticket = &self.maps[*map_index].tickets[*ticket_index];
-                let mut text = Text::from(format!(
-                    "{}: {}\n\nStatus: {}\n\n",
+                let header = format!(
+                    "## {}: {}\n\n**Status:** {}  \n\n",
                     ticket.id, ticket.title, ticket.status
-                ));
+                );
+                let mut text = render_markdown(&header, width);
                 text.extend(preview_file(&ticket.path, width).lines);
                 text
             }
@@ -778,7 +853,10 @@ impl App {
                 text
             }
             _ => Text::from(self.detail()),
-        }
+        };
+        self.preview_cache = Some((self.selected, width, text.clone()));
+        self.preview_render_after = None;
+        text
     }
 
     fn resources(&self, index: usize) -> String {
@@ -794,7 +872,7 @@ impl App {
             commands.extend(task.commands.iter().cloned());
         }
         format!(
-            "ASSETS & RESOURCES: GOAL {:02}\n\nLifecycle artifacts:\n{}\n\nDependency goals:\n{}\n\nArchitecture inputs:\n{}\n\nPRD deliverables:\n{}\n\nTask references:\n{}\n\nImplementation targets:\n{}\n\nRequired skills:\n{}\n\nVerification commands:\n{}",
+            "## ASSETS & RESOURCES: GOAL {:02}\n\n**Lifecycle artifacts:**\n{}\n\n**Dependency goals:**\n{}\n\n**Architecture inputs:**\n{}\n\n**PRD deliverables:**\n{}\n\n**Task references:**\n{}\n\n**Implementation targets:**\n{}\n\n**Required skills:**\n{}\n\n**Verification commands:**\n{}",
             goal.id,
             bullet_list(&goal.artifacts),
             bullet_list(
@@ -1108,7 +1186,7 @@ fn handle_wheel(app: &mut App, column: u16, row: u16, down: bool) {
         && row > app.list_area.y
         && row < app.list_area.y.saturating_add(app.list_area.height)
     {
-        if !app.repeat_throttle(if down { KeyCode::Down } else { KeyCode::Up }) {
+        if !app.wheel_throttle(down) {
             app.move_selection(if down { 1 } else { -1 });
         }
         return;
@@ -1120,16 +1198,10 @@ fn handle_wheel(app: &mut App, column: u16, row: u16, down: bool) {
     {
         return;
     }
-    if !app.repeat_throttle(if down {
-        KeyCode::PageDown
+    if down {
+        app.preview_offset = app.preview_offset.saturating_add(3);
     } else {
-        KeyCode::PageUp
-    }) {
-        if down {
-            app.preview_offset = app.preview_offset.saturating_add(3);
-        } else {
-            app.preview_offset = app.preview_offset.saturating_sub(3);
-        }
+        app.preview_offset = app.preview_offset.saturating_sub(3);
     }
 }
 
@@ -1151,74 +1223,58 @@ fn run(
 ) -> Result<(), Box<dyn Error>> {
     loop {
         terminal.draw(|frame| draw(frame, &mut app))?;
-        if !event::poll(Duration::from_millis(250))? {
+        if !event::poll(Duration::from_millis(16))? {
             continue;
         }
         match event::read()? {
-            Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
-                KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
-                KeyCode::Down => {
-                    if !app.repeat_throttle(KeyCode::Down) {
-                        app.move_selection(1);
+            Event::Key(key) if key.kind == KeyEventKind::Press => {
+                match key.code {
+                    KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
+                    KeyCode::Down | KeyCode::Char('j') => app.move_selection(1),
+                    KeyCode::Up | KeyCode::Char('k') => app.move_selection(-1),
+                    KeyCode::PageDown => {
+                        if !app.repeat_throttle(KeyCode::PageDown) {
+                            app.preview_offset = app
+                                .preview_offset
+                                .saturating_add(app.preview_area.height.saturating_sub(2))
+                        }
                     }
-                }
-                KeyCode::Char('j') => {
-                    if !app.repeat_throttle(KeyCode::Char('j')) {
-                        app.move_selection(1);
+                    KeyCode::PageUp => {
+                        if !app.repeat_throttle(KeyCode::PageUp) {
+                            app.preview_offset = app
+                                .preview_offset
+                                .saturating_sub(app.preview_area.height.saturating_sub(2))
+                        }
                     }
-                }
-                KeyCode::Up => {
-                    if !app.repeat_throttle(KeyCode::Up) {
-                        app.move_selection(-1);
+                    KeyCode::Enter => app.enter(&mut terminal)?,
+                    KeyCode::Char(' ') => app.toggle_selected(),
+                    KeyCode::Tab => {
+                        app.tab = 1 - app.tab;
+                        app.rebuild();
                     }
-                }
-                KeyCode::Char('k') => {
-                    if !app.repeat_throttle(KeyCode::Char('k')) {
-                        app.move_selection(-1);
+                    KeyCode::BackTab => {
+                        app.tab = 1 - app.tab;
+                        app.rebuild();
                     }
-                }
-                KeyCode::PageDown => {
-                    if !app.repeat_throttle(KeyCode::PageDown) {
-                        app.preview_offset = app
-                            .preview_offset
-                            .saturating_add(app.preview_area.height.saturating_sub(2))
+                    KeyCode::Char('1') => {
+                        app.tab = 0;
+                        app.rebuild();
                     }
-                }
-                KeyCode::PageUp => {
-                    if !app.repeat_throttle(KeyCode::PageUp) {
-                        app.preview_offset = app
-                            .preview_offset
-                            .saturating_sub(app.preview_area.height.saturating_sub(2))
+                    KeyCode::Char('2') => {
+                        app.tab = 1;
+                        app.rebuild();
                     }
-                }
-                KeyCode::Enter => app.enter(&mut terminal)?,
-                KeyCode::Char(' ') => app.toggle_selected(),
-                KeyCode::Tab | KeyCode::Right => {
-                    app.tab = 1 - app.tab;
-                    app.rebuild();
-                }
-                KeyCode::BackTab | KeyCode::Left => {
-                    app.tab = 1 - app.tab;
-                    app.rebuild();
-                }
-                KeyCode::Char('1') => {
-                    app.tab = 0;
-                    app.rebuild();
-                }
-                KeyCode::Char('2') => {
-                    app.tab = 1;
-                    app.rebuild();
-                }
-                KeyCode::Char('m') => {
-                    if let Some(path) = app.selected_file() {
-                        open_mdt(&mut terminal, &path)?;
+                    KeyCode::Char('m') => {
+                        if let Some(path) = app.selected_file() {
+                            open_mdt(&mut terminal, &path)?;
+                        }
                     }
+                    KeyCode::Char('r') => {
+                        app = App::new(app.root.clone());
+                    }
+                    _ => {}
                 }
-                KeyCode::Char('r') => {
-                    app = App::new(app.root.clone());
-                }
-                _ => {}
-            },
+            }
             Event::Mouse(mouse)
                 if matches!(mouse.kind, MouseEventKind::Down(MouseButton::Left)) =>
             {
@@ -1244,6 +1300,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
     let result = run(terminal, App::new(PathBuf::from(root)));
     disable_raw_mode()?;
-    execute!(stdout(), DisableMouseCapture, LeaveAlternateScreen)?;
+    execute!(
+        stdout(),
+        DisableMouseCapture,
+        LeaveAlternateScreen
+    )?;
     result
 }
