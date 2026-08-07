@@ -13,7 +13,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
 };
 use regex::Regex;
 use serde_json::Value;
@@ -27,6 +27,8 @@ use std::{
     process::Command,
     time::{Duration, Instant, UNIX_EPOCH},
 };
+
+const REPEAT_DELAY: Duration = Duration::from_millis(160);
 
 #[derive(Clone)]
 struct Task {
@@ -100,7 +102,8 @@ struct App {
     preview_area: Rect,
     list_offset: usize,
     preview_offset: u16,
-    last_enter: Option<(usize, Instant)>,
+    last_key: Option<KeyCode>,
+    last_key_at: Option<Instant>,
 }
 
 fn read(path: &Path) -> String {
@@ -153,6 +156,8 @@ fn preview_file(path: &Path, width: u16) -> Text<'static> {
         };
     }
     let output = Command::new("glow")
+        .env("CLICOLOR_FORCE", "1")
+        .env("FORCE_COLOR", "1")
         .arg("--width")
         .arg(width.max(20).to_string())
         .args(["--style", "dark"])
@@ -167,21 +172,29 @@ fn preview_file(path: &Path, width: u16) -> Text<'static> {
     }
 }
 
-fn open_in_nvim(path: &Path) {
-    let Ok(server) = env::var("GOALS_TUI_NVIM_SERVER") else {
-        return;
-    };
-    if server.is_empty() {
-        return;
+fn run_inline(
+    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    mut command: Command,
+) -> Result<(), Box<dyn Error>> {
+    disable_raw_mode()?;
+    execute!(stdout(), LeaveAlternateScreen)?;
+    let _ = command.status();
+    execute!(stdout(), EnterAlternateScreen, EnableMouseCapture)?;
+    enable_raw_mode()?;
+    terminal.draw(|frame| frame.render_widget(Clear, frame.area()))?;
+    while event::poll(Duration::ZERO)? {
+        event::read()?;
     }
-    let escaped = path
-        .to_string_lossy()
-        .replace('\\', "\\\\")
-        .replace('\'', "''");
-    let expression = format!("execute('edit ' . fnameescape('{escaped}'))");
-    let _ = Command::new("nvim")
-        .args(["--server", &server, "--remote-expr", &expression])
-        .status();
+    Ok(())
+}
+
+fn open_in_editor(
+    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    path: &Path,
+) -> Result<(), Box<dyn Error>> {
+    let mut command = Command::new("nvim");
+    command.arg("-R").arg(path);
+    run_inline(terminal, command)
 }
 
 fn frontmatter(path: &Path) -> HashMap<String, String> {
@@ -443,7 +456,8 @@ impl App {
             preview_area: Rect::default(),
             list_offset: 0,
             preview_offset: 0,
-            last_enter: None,
+            last_key: None,
+            last_key_at: None,
         };
         for index in 0..app.goals.len() {
             app.collapsed.insert(format!("goal:{index}"));
@@ -633,7 +647,6 @@ impl App {
     fn select(&mut self, selected: usize) {
         self.selected = selected.min(self.entries.len().saturating_sub(1));
         self.preview_offset = 0;
-        self.last_enter = None;
         let visible = usize::from(self.list_area.height.saturating_sub(2)).max(1);
         if self.selected < self.list_offset {
             self.list_offset = self.selected;
@@ -642,20 +655,37 @@ impl App {
         }
     }
 
-    fn enter(&mut self) {
-        if let Some(path) = self.selected_file() {
-            let is_second_enter = self.last_enter.is_some_and(|(selected, at)| {
-                selected == self.selected && at.elapsed() < Duration::from_millis(700)
-            });
-            self.last_enter = Some((self.selected, Instant::now()));
-            if is_second_enter {
-                self.last_enter = None;
-                open_in_nvim(&path);
-            }
+    fn move_selection(&mut self, delta: isize) {
+        if self.entries.is_empty() {
             return;
         }
-        self.last_enter = None;
+        let len = self.entries.len();
+        let next = (self.selected as isize + delta).rem_euclid(len as isize) as usize;
+        self.select(next);
+    }
+
+    fn repeat_throttle(&mut self, key: KeyCode) -> bool {
+        let now = Instant::now();
+        let throttled = self.last_key == Some(key)
+            && self
+                .last_key_at
+                .is_some_and(|at| now.duration_since(at) < REPEAT_DELAY);
+        if !throttled {
+            self.last_key = Some(key);
+            self.last_key_at = Some(now);
+        }
+        throttled
+    }
+
+    fn enter(
+        &mut self,
+        terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    ) -> Result<(), Box<dyn Error>> {
+        if let Some(path) = self.selected_file() {
+            return open_in_editor(terminal, &path);
+        }
         self.toggle_selected();
+        Ok(())
     }
 
     fn detail(&self) -> String {
@@ -715,17 +745,14 @@ impl App {
             Some(Entry::Ticket(map_index, ticket_index)) => {
                 let ticket = &self.maps[*map_index].tickets[*ticket_index];
                 format!(
-                    "{}: {}\n\nStatus: {}\nPress Enter twice to open this source in Neovim.\n\n{}",
+                    "{}: {}\n\nStatus: {}\n\n{}",
                     ticket.id,
                     ticket.title,
                     ticket.status,
                     read(&ticket.path)
                 )
             }
-            Some(Entry::File(path, _)) => format!(
-                "Press Enter twice to open this file in Neovim.\n\n{}",
-                read(path)
-            ),
+            Some(Entry::File(path, _)) => read(path).to_string(),
             Some(Entry::Section(title, _)) => format!(
                 "{}\n\nUse j/k or arrows to select an item.\nUse Tab or 1/2 to switch views.",
                 title
@@ -739,16 +766,14 @@ impl App {
             Some(Entry::Ticket(map_index, ticket_index)) => {
                 let ticket = &self.maps[*map_index].tickets[*ticket_index];
                 let mut text = Text::from(format!(
-                    "{}: {}\n\nStatus: {}\nPress Enter twice to open this source in Neovim. Press m for mdt.\n\n",
+                    "{}: {}\n\nStatus: {}\n\n",
                     ticket.id, ticket.title, ticket.status
                 ));
                 text.extend(preview_file(&ticket.path, width).lines);
                 text
             }
             Some(Entry::File(path, _)) => {
-                let mut text = Text::from(
-                    "Press Enter twice to open this file in Neovim. Press m for mdt.\n\n",
-                );
+                let mut text = Text::from("");
                 text.extend(preview_file(path, width).lines);
                 text
             }
@@ -1036,9 +1061,10 @@ fn draw(frame: &mut Frame, app: &mut App) {
         .wrap(Wrap { trim: false })
         .scroll((app.preview_offset, 0));
     frame.render_widget(detail, content[1]);
-    let footer = Paragraph::new(
-        " j/k: navigate | PgUp/PgDn or wheel: preview scroll | Enter/Space: collapse | m: mdt | Click: select/tab | Tab: switch | q: quit ",
-    )
+    let footer = Paragraph::new(vec![
+        Line::from(" Enter: open in editor | Space: collapse | m: mdt | 1/2/Tab: switch | r: refresh | q: quit "),
+        Line::from(" j/k or wheel: navigate | PgUp/PgDn or wheel on preview: scroll | Click: select/tab "),
+    ])
     .style(Style::default().fg(Color::DarkGray));
     frame.render_widget(footer, outer[2]);
 }
@@ -1077,6 +1103,16 @@ fn handle_mouse(app: &mut App, column: u16, row: u16) {
 }
 
 fn handle_wheel(app: &mut App, column: u16, row: u16, down: bool) {
+    if column >= app.list_area.x
+        && column < app.list_area.x.saturating_add(app.list_area.width)
+        && row > app.list_area.y
+        && row < app.list_area.y.saturating_add(app.list_area.height)
+    {
+        if !app.repeat_throttle(if down { KeyCode::Down } else { KeyCode::Up }) {
+            app.move_selection(if down { 1 } else { -1 });
+        }
+        return;
+    }
     if column < app.preview_area.x
         || column >= app.preview_area.x.saturating_add(app.preview_area.width)
         || row < app.preview_area.y
@@ -1084,10 +1120,16 @@ fn handle_wheel(app: &mut App, column: u16, row: u16, down: bool) {
     {
         return;
     }
-    if down {
-        app.preview_offset = app.preview_offset.saturating_add(3);
+    if !app.repeat_throttle(if down {
+        KeyCode::PageDown
     } else {
-        app.preview_offset = app.preview_offset.saturating_sub(3);
+        KeyCode::PageUp
+    }) {
+        if down {
+            app.preview_offset = app.preview_offset.saturating_add(3);
+        } else {
+            app.preview_offset = app.preview_offset.saturating_sub(3);
+        }
     }
 }
 
@@ -1098,13 +1140,9 @@ fn open_mdt(
     if path.extension().and_then(|extension| extension.to_str()) != Some("md") {
         return Ok(());
     }
-    disable_raw_mode()?;
-    execute!(stdout(), DisableMouseCapture, LeaveAlternateScreen)?;
-    let _ = Command::new("mdt").arg(path).status();
-    execute!(stdout(), EnterAlternateScreen, EnableMouseCapture)?;
-    enable_raw_mode()?;
-    terminal.clear()?;
-    Ok(())
+    let mut command = Command::new("mdt");
+    command.arg(path);
+    run_inline(terminal, command)
 }
 
 fn run(
@@ -1119,23 +1157,41 @@ fn run(
         match event::read()? {
             Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
                 KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
-                KeyCode::Down | KeyCode::Char('j') => {
-                    if !app.entries.is_empty() {
-                        app.select(app.selected + 1);
+                KeyCode::Down => {
+                    if !app.repeat_throttle(KeyCode::Down) {
+                        app.move_selection(1);
                     }
                 }
-                KeyCode::Up | KeyCode::Char('k') => app.select(app.selected.saturating_sub(1)),
+                KeyCode::Char('j') => {
+                    if !app.repeat_throttle(KeyCode::Char('j')) {
+                        app.move_selection(1);
+                    }
+                }
+                KeyCode::Up => {
+                    if !app.repeat_throttle(KeyCode::Up) {
+                        app.move_selection(-1);
+                    }
+                }
+                KeyCode::Char('k') => {
+                    if !app.repeat_throttle(KeyCode::Char('k')) {
+                        app.move_selection(-1);
+                    }
+                }
                 KeyCode::PageDown => {
-                    app.preview_offset = app
-                        .preview_offset
-                        .saturating_add(app.preview_area.height.saturating_sub(2))
+                    if !app.repeat_throttle(KeyCode::PageDown) {
+                        app.preview_offset = app
+                            .preview_offset
+                            .saturating_add(app.preview_area.height.saturating_sub(2))
+                    }
                 }
                 KeyCode::PageUp => {
-                    app.preview_offset = app
-                        .preview_offset
-                        .saturating_sub(app.preview_area.height.saturating_sub(2))
+                    if !app.repeat_throttle(KeyCode::PageUp) {
+                        app.preview_offset = app
+                            .preview_offset
+                            .saturating_sub(app.preview_area.height.saturating_sub(2))
+                    }
                 }
-                KeyCode::Enter => app.enter(),
+                KeyCode::Enter => app.enter(&mut terminal)?,
                 KeyCode::Char(' ') => app.toggle_selected(),
                 KeyCode::Tab | KeyCode::Right => {
                     app.tab = 1 - app.tab;
@@ -1185,8 +1241,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .ok_or("usage: goals-tui <project-root>")?;
     enable_raw_mode()?;
     execute!(stdout(), EnterAlternateScreen, EnableMouseCapture)?;
-    let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
-    terminal.clear()?;
+    let terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
     let result = run(terminal, App::new(PathBuf::from(root)));
     disable_raw_mode()?;
     execute!(stdout(), DisableMouseCapture, LeaveAlternateScreen)?;

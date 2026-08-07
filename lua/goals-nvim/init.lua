@@ -31,7 +31,6 @@ function M.open(path)
   snacks.terminal.open({ binary, root }, {
     cwd = root,
     interactive = true,
-    env = { GOALS_TUI_NVIM_SERVER = vim.v.servername },
     win = { style = "terminal" },
   })
 end
