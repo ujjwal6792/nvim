@@ -22,9 +22,9 @@ use std::{
     env,
     error::Error,
     fs,
-    io::{self, Write, stdout},
+    io::{self, stdout},
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::Command,
     time::{Duration, Instant, UNIX_EPOCH},
 };
 
@@ -173,32 +173,6 @@ fn preview_file(path: &Path, width: u16) -> Text<'static> {
             .into_text()
             .unwrap_or_else(|_| Text::from(read(path))),
         _ => Text::from(read(path)),
-    }
-}
-
-fn render_markdown(content: &str, width: u16) -> Text<'static> {
-    let mut child = match Command::new("glow")
-        .env("CLICOLOR_FORCE", "1")
-        .env("FORCE_COLOR", "1")
-        .arg("--width")
-        .arg(width.max(20).to_string())
-        .args(["--style", "dark"])
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()
-    {
-        Ok(child) => child,
-        Err(_) => return Text::from(content.to_string()),
-    };
-    if let Some(mut stdin) = child.stdin.take() {
-        let _ = stdin.write_all(content.as_bytes());
-    }
-    match child.wait_with_output() {
-        Ok(output) if output.status.success() => output
-            .stdout
-            .into_text()
-            .unwrap_or_else(|_| Text::from(content.to_string())),
-        _ => Text::from(content.to_string()),
     }
 }
 
@@ -837,13 +811,92 @@ impl App {
         }
 
         let text = match self.selected_entry() {
+            Some(Entry::Goal(index)) => {
+                let goal = &self.goals[*index];
+                let mut lines = detail_header("GOAL", format!("G{:02}  {}", goal.id, goal.slug));
+                lines.push(detail_field("STATUS", &goal.status, status_color(&goal.status)));
+                lines.push(detail_field("TASKS", goal.tasks.len().to_string(), Color::Cyan));
+                lines.push(detail_field("PATH", goal.path.display().to_string(), Color::Gray));
+                lines.extend(detail_section("WAYFINDING LINKED", &goal.linked_maps));
+                lines.extend(detail_section("WAYFINDING MENTIONED", &goal.mentioned_maps));
+                Text::from(lines)
+            }
+            Some(Entry::Resources(index)) => {
+                let goal = &self.goals[*index];
+                let mut references = BTreeSet::new();
+                let mut targets = BTreeSet::new();
+                let mut skills = BTreeSet::new();
+                let mut commands = BTreeSet::new();
+                for task in &goal.tasks {
+                    references.extend(task.references.iter().cloned());
+                    targets.extend(task.targets.iter().cloned());
+                    skills.extend(task.skills.iter().cloned());
+                    commands.extend(task.commands.iter().cloned());
+                }
+                let dependencies = goal
+                    .dependencies
+                    .iter()
+                    .map(|id| format!("Goal {id:02}"))
+                    .collect::<Vec<_>>();
+                let mut lines = detail_header("ASSETS & RESOURCES", format!("GOAL {:02}", goal.id));
+                lines.extend(detail_section("LIFECYCLE ARTIFACTS", &goal.artifacts));
+                lines.extend(detail_section("DEPENDENCY GOALS", &dependencies));
+                lines.extend(detail_section("ARCHITECTURE INPUTS", &goal.architecture));
+                lines.extend(detail_section("PRD DELIVERABLES", &goal.deliverables));
+                lines.extend(detail_section("TASK REFERENCES", &references.into_iter().collect::<Vec<_>>()));
+                lines.extend(detail_section("IMPLEMENTATION TARGETS", &targets.into_iter().collect::<Vec<_>>()));
+                lines.extend(detail_section("REQUIRED SKILLS", &skills.into_iter().collect::<Vec<_>>()));
+                lines.extend(detail_section("VERIFICATION COMMANDS", &commands.into_iter().collect::<Vec<_>>()));
+                Text::from(lines)
+            }
+            Some(Entry::Task(goal_index, task_index)) => {
+                let task = &self.goals[*goal_index].tasks[*task_index];
+                let mut lines = detail_header("TASK", format!("{}  {}", task.id, task.title));
+                lines.push(detail_field("STATUS", &task.status, status_color(&task.status)));
+                lines.push(detail_field("PRIORITY", &task.priority, Color::Yellow));
+                lines.extend(detail_section("BLOCKED BY", &task.blocked_by));
+                lines.extend(detail_section("REFERENCES", &task.references));
+                lines.extend(detail_section("IMPLEMENTATION TARGETS", &task.targets));
+                lines.extend(detail_section("REQUIRED SKILLS", &task.skills));
+                lines.extend(detail_section("VERIFICATION COMMANDS", &task.commands));
+                Text::from(lines)
+            }
+            Some(Entry::Map(index)) => {
+                let map = &self.maps[*index];
+                let linked = map
+                    .linked_goals
+                    .iter()
+                    .map(|index| format!("G{:02}  {}", self.goals[*index].id, self.goals[*index].slug))
+                    .collect::<Vec<_>>();
+                let mentioned = map
+                    .mentioned_goals
+                    .iter()
+                    .map(|index| format!("G{:02}  {}", self.goals[*index].id, self.goals[*index].slug))
+                    .collect::<Vec<_>>();
+                let mut lines = detail_header("WAYFINDING", map.name.clone());
+                lines.push(detail_field("STATUS", &map.status, status_color(&map.status)));
+                lines.push(detail_field("TICKETS", map.tickets.len().to_string(), Color::Cyan));
+                lines.extend(detail_section("LINKED GOALS", &linked));
+                lines.extend(detail_section("MENTIONED GOALS", &mentioned));
+                Text::from(lines)
+            }
+            Some(Entry::Relationship(index, evidence)) => {
+                let goal = &self.goals[*index];
+                let mut lines = detail_header("GOAL RELATIONSHIP", evidence.to_uppercase());
+                lines.push(detail_field("GOAL", format!("G{:02}  {}", goal.id, goal.slug), Color::Cyan));
+                lines.push(detail_field("STATUS", &goal.status, status_color(&goal.status)));
+                lines.push(detail_field("TASKS", goal.tasks.len().to_string(), Color::Cyan));
+                lines.push(detail_field("PATH", goal.path.display().to_string(), Color::Gray));
+                Text::from(lines)
+            }
             Some(Entry::Ticket(map_index, ticket_index)) => {
                 let ticket = &self.maps[*map_index].tickets[*ticket_index];
-                let header = format!(
-                    "## {}: {}\n\n**Status:** {}  \n\n",
-                    ticket.id, ticket.title, ticket.status
-                );
-                let mut text = render_markdown(&header, width);
+                let mut text = Text::from({
+                    let mut lines = detail_header("TICKET", format!("{}  {}", ticket.id, ticket.title));
+                    lines.push(detail_field("STATUS", &ticket.status, status_color(&ticket.status)));
+                    lines.push(Line::default());
+                    lines
+                });
                 text.extend(preview_file(&ticket.path, width).lines);
                 text
             }
@@ -852,7 +905,8 @@ impl App {
                 text.extend(preview_file(path, width).lines);
                 text
             }
-            _ => Text::from(self.detail()),
+            Some(Entry::Section(title, _)) => Text::from(detail_header("SECTION", title.clone())),
+            None => Text::from("No planning records found."),
         };
         self.preview_cache = Some((self.selected, width, text.clone()));
         self.preview_render_after = None;
@@ -911,6 +965,51 @@ fn goal_list(goals: &[Goal], indices: &[usize]) -> String {
             .collect::<Vec<_>>(),
     )
 }
+
+fn detail_header(label: impl Into<String>, value: impl Into<String>) -> Vec<Line<'static>> {
+    vec![
+        Line::from(vec![
+            Span::styled(label.into(), Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD)),
+            Span::raw("  "),
+            Span::styled(value.into(), Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        ]),
+        Line::from(Span::styled("─".repeat(56), Style::default().fg(Color::DarkGray))),
+        Line::default(),
+    ]
+}
+
+fn detail_field(
+    label: impl Into<String>,
+    value: impl Into<String>,
+    value_color: Color,
+) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(
+            format!("{:>12}  ", label.into()),
+            Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(value.into(), Style::default().fg(value_color)),
+    ])
+}
+
+fn detail_section(title: impl Into<String>, values: &[String]) -> Vec<Line<'static>> {
+    let mut lines = vec![Line::default(), Line::from(Span::styled(
+        title.into(),
+        Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD),
+    ))];
+    if values.is_empty() {
+        lines.push(Line::from(Span::styled("  — None", Style::default().fg(Color::DarkGray))));
+    } else {
+        lines.extend(values.iter().map(|value| {
+            Line::from(vec![
+                Span::styled("  • ", Style::default().fg(Color::Cyan)),
+                Span::raw(value.clone()),
+            ])
+        }));
+    }
+    lines
+}
+
 fn status_color(status: &str) -> Color {
     match status {
         "wip" | "in_progress" => Color::Yellow,
@@ -1042,6 +1141,7 @@ fn entry_line(app: &App, entry: &Entry) -> (String, Style) {
 
 fn draw(frame: &mut Frame, app: &mut App) {
     let area = frame.area();
+    frame.render_widget(Clear, area);
     let outer = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
